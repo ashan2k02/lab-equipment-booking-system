@@ -6,6 +6,19 @@ The Lab Equipment Booking System is a web-based application developed to manage 
 
 The system aims to prevent double bookings, maintain booking records, and simplify equipment availability management.
 
+## Project Structure
+
+The project is organized into the following main components:
+
+- `app/` – Contains the Flask application and its modules.
+- `app/models.py` – Defines database models using Flask-SQLAlchemy.
+- `app/routes.py` – Handles application routes and page requests.
+- `app/auth.py` – Handles authentication functionality.
+- `tests/` – Contains automated tests written using pytest.
+- `run.py` – Entry point for running the Flask application.
+- `requirements.txt` – Lists the required Python dependencies.
+- `.github/workflows/ci.yml` – Configures automated checks using GitHub Actions.
+
 ## Team Members and Module Allocation
 
 | Team Member          | GitHub Username      | Module Allocation                                  |
