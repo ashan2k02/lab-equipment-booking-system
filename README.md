@@ -8,16 +8,26 @@ The system aims to prevent double bookings, maintain booking records, and simpli
 
 ## Project Structure
 
-The project is organized into the following main components:
-
-- `app/` – Contains the Flask application and its modules.
-- `app/models.py` – Defines database models using Flask-SQLAlchemy.
-- `app/routes.py` – Handles application routes and page requests.
-- `app/auth.py` – Handles authentication functionality.
-- `tests/` – Contains automated tests written using pytest.
-- `run.py` – Entry point for running the Flask application.
-- `requirements.txt` – Lists the required Python dependencies.
-- `.github/workflows/ci.yml` – Configures automated checks using GitHub Actions.
+lab-equipment-booking-system/
+│
+├── app/
+│   ├── __init__.py
+│   ├── models.py
+│   ├── routes.py
+│   └── auth.py
+│
+├── tests/
+│   └── test_basic.py
+│
+├── run.py
+├── requirements.txt
+├── README.md
+├── REVIEW_CHECKLIST.md
+├── TESTING.md
+├── .gitignore
+└── .github/
+    └── workflows/
+        └── ci.yml
 
 ## Team Members and Module Allocation
 
