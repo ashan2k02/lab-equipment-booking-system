@@ -35,7 +35,7 @@ Lab-Equipment-Booking-System/
 |---|---|---|
 | Ashan Eranga | @ashan2k02 | M1 – Accounts and Authentication |
 | Viboothi Balasooriya | @ViboothiBalasooriya | M2 – Equipment Catalogue |
-| Shasi Salakshana | @shashisalakshana | M3 – Booking Requests and M5 – Approval and Status |
+| Shashi Salakshana | @shashisalakshana | M3 – Booking Requests and M5 – Approval and Status |
 | Maleesha Rajanayaka | @MaleeshaRajanayaka | M4 – Booking Validation and Testing |
 
 ## Individual Responsibilities
@@ -77,7 +77,7 @@ Lab-Equipment-Booking-System/
 |---|---|---|
 | Coordinator | Ashan Eranga | Organizes GitHub Issues and maintains the project board. |
 | GitHub/CI Lead | Viboothi Balasooriya | Maintains repository setup and the CI workflow. |
-| Review Lead | Shasi Salakshana | Coordinates peer reviews and review evidence. |
+| Review Lead | Shashi Salakshana | Coordinates peer reviews and review evidence. |
 | QA Lead | Maleesha Rajanayaka | Coordinates testing and maintains TESTING.md. |
 
 ## Shared Team Responsibilities
