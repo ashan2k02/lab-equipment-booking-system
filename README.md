@@ -35,7 +35,7 @@ Lab-Equipment-Booking-System/
 |---|---|---|
 | Ashan Eranga | @ashan2k02 | M1 – Accounts and Authentication |
 | Viboothi Balasooriya | @ViboothiBalasooriya | M2 – Equipment Catalogue |
-| Shashi Salakshana | @shashisalakshana | M3 – Booking Requests and M5 – Approval and Status |
+| M D S Salakshana | @shashisalakshana | M3 – Booking Requests and M5 – Approval and Status |
 | Maleesha Rajanayaka | @MaleeshaRajanayaka | M4 – Booking Validation and Testing |
 
 ## Individual Responsibilities
