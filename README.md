@@ -10,23 +10,33 @@ The system aims to prevent double bookings, maintain booking records, and simpli
 
 The project is organized into the following main components:
 
-- `app/` – Contains the Flask application and its modules.
-- `app/models.py` – Defines database models using Flask-SQLAlchemy.
-- `app/routes.py` – Handles application routes and page requests.
-- `app/auth.py` – Handles authentication functionality.
-- `tests/` – Contains automated tests written using pytest.
-- `run.py` – Entry point for running the Flask application.
-- `requirements.txt` – Lists the required Python dependencies.
-- `.github/workflows/ci.yml` – Configures automated checks using GitHub Actions.
+Lab-Equipment-Booking-System/
+├── app/
+│   ├── __init__.py
+│   ├── models.py
+│   ├── routes.py
+│   └── auth.py
+├── tests/
+│   └── test_basic.py
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── run.py
+├── requirements.txt
+├── README.md
+├── REVIEW_CHECKLIST.md
+├── TESTING.md
+├── RETROSPECTIVE.md
+└── .gitignore
 
 ## Team Members and Module Allocation
 
-| Team Member          | GitHub Username      | Module Allocation                                  |
-| -------------------- | -------------------- | -------------------------------------------------- |
-| Ashan Eranga         | @ashan2k02           | M1 – Accounts and Authentication                   |
-| Viboothi Balasooriya | @ViboothiBalasooriya | M2 – Equipment Catalogue                           |
-| Shasi Salakshana     | @shashisalakshana    | M3 – Booking Requests and M5 – Approval and Status |
-| Maleesha Rajanayaka  | @MaleeshaRajanayaka  | M4 – Booking Validation and Testing                |
+| Team Member          | GitHub Username      | Module Allocation                                     |
+| -------------------- | -------------------- | ------------------------------------------------------|
+| Ashan Eranga         | @ashan2k02           | M1 – Accounts and Authentication                      |
+| Viboothi Balasooriya | @ViboothiBalasooriya | M2 – Equipment Catalogue and M5 – Approval and Status |
+| Shasi Salakshana     | @shashisalakshana    | M3 – Booking Requests                                 |
+| Maleesha Rajanayaka  | @MaleeshaRajanayaka  | M4 – Booking Validation and Testing                   |
 
 ## Individual Responsibilities
 
