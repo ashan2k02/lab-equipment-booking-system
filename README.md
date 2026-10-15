@@ -34,8 +34,8 @@ Lab-Equipment-Booking-System/
 | Team Member | GitHub Username | Module Allocation |
 |---|---|---|
 | Ashan Eranga | @ashan2k02 | M1 – Accounts and Authentication |
-| Viboothi Balasooriya | @ViboothiBalasooriya | M2 – Equipment Catalogue |
-| M D S Salakshana | @shashisalakshana | M3 – Booking Requests and M5 – Approval and Status |
+| Viboothi Balasooriya | @ViboothiBalasooriya | M2 – Equipment Catalogue and M5 – Approval and Status|
+| M D S Salakshana | @shashisalakshana | M3 – Booking Requests  |
 | Maleesha Rajanayaka | @MaleeshaRajanayaka | M4 – Booking Validation and Testing |
 
 ## Individual Responsibilities
