@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}401 Unauthorized - Lab Equipment Booking System{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper" style="max-width: 580px; margin: 0 auto; text-align: center;">
+  <div class="auth-card" style="padding: 2.5rem 2rem;">
+    <div style="font-size: 3rem; margin-bottom: 0.5rem;">🔒</div>
+    <h1 style="font-size: 1.75rem; font-weight: 700; color: #2563eb; margin-bottom: 0.75rem;">Authentication Required (401)</h1>
+    <p style="color: var(--text-muted); font-size: 1rem; line-height: 1.6; margin-bottom: 1.75rem;">
+      You must be authenticated to view this page. Please log in with your university account credentials to proceed.
+    </p>
+
+    <div style="display: flex; gap: 1rem; justify-content: center;">
+      <a href="{{ url_for('auth.login') }}" class="btn btn-primary">Log In</a>
+      <a href="{{ url_for('auth.register') }}" class="btn" style="background: #f1f5f9; color: var(--text-main);">Register</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

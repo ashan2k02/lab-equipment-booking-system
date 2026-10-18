@@ -7,19 +7,21 @@
   <div class="auth-card">
     <div class="auth-header">
       <h1>Account Login</h1>
-      <p>Log in with your username and password.</p>
+      <p>Log in with your username or registered email.</p>
     </div>
 
-    <form method="POST" action="{{ url_for('auth.login') }}">
+    <form method="POST" action="{{ url_for('auth.login', next=request.args.get('next')) }}">
       <div class="form-group">
-        <label for="username" class="form-label">Username</label>
+        <label for="username" class="form-label">Username or Email</label>
         <input
           type="text"
           id="username"
           name="username"
           class="form-control"
-          placeholder="Enter your username"
+          placeholder="e.g. ashan_eranga or student@uni.ac.lk"
+          value="{{ username or '' }}"
           required
+          autocomplete="username"
         >
       </div>
 
@@ -32,7 +34,13 @@
           class="form-control"
           placeholder="Enter your password"
           required
+          autocomplete="current-password"
         >
+      </div>
+
+      <div class="form-group form-check" style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+        <input type="checkbox" id="remember" name="remember" value="1">
+        <label for="remember" style="font-size: 0.88rem; color: var(--text-muted); cursor: pointer;">Remember me on this device</label>
       </div>
 
       <button type="submit" id="login-btn" class="btn btn-primary btn-block">

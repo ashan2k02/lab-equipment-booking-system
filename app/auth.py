@@ -1,6 +1,17 @@
 import re
+from functools import wraps
+from urllib.parse import urlsplit
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    abort,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
+from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app import db
@@ -51,6 +62,61 @@ def validate_registration_input(
     return True, None
 
 
+def role_required(*roles: str):
+    """Decorator to restrict route access to authenticated users having one of the specified roles.
+
+    Unauthenticated requests are redirected to login via Flask-Login.
+    Authenticated users lacking one of the required roles are rejected with HTTP 403 Forbidden.
+    """
+
+    def decorator(f):
+        @wraps(f)
+        @login_required
+        def decorated_function(*args, **kwargs):
+            if not current_user.is_authenticated or current_user.role not in roles:
+                abort(403)
+            return f(*args, **kwargs)
+
+        return decorated_function
+
+    return decorator
+
+
+roles_required = role_required
+
+
+def staff_required(f):
+    """Decorator to restrict access to authenticated Staff users only."""
+    return role_required(User.ROLE_STAFF)(f)
+
+
+def student_required(f):
+    """Decorator to restrict access to authenticated Student users only."""
+    return role_required(User.ROLE_STUDENT)(f)
+
+
+def permission_required(permission_name: str):
+    """Decorator to restrict route access based on a User capability/permission check.
+
+    Evaluates the named method or attribute on current_user (e.g., 'can_manage_equipment',
+    'can_review_bookings'). If False or missing, raises HTTP 403 Forbidden.
+    """
+
+    def decorator(f):
+        @wraps(f)
+        @login_required
+        def decorated_function(*args, **kwargs):
+            check = getattr(current_user, permission_name, None)
+            allowed = check() if callable(check) else bool(check)
+            if not allowed:
+                abort(403)
+            return f(*args, **kwargs)
+
+        return decorated_function
+
+    return decorator
+
+
 @auth_bp.route("/register", methods=["GET", "POST"])
 @auth_bp.route("/auth/register", methods=["GET", "POST"])
 def register():
@@ -59,6 +125,9 @@ def register():
     Public registration strictly creates Student accounts only. Any submitted
     role is explicitly ignored to prevent unauthorized privilege escalation.
     """
+    if current_user.is_authenticated:
+        return redirect(url_for("auth.dashboard"))
+
     if request.method == "POST":
         raw_username = request.form.get("username", "")
         raw_email = request.form.get("email", "")
@@ -158,13 +227,63 @@ def register():
 @auth_bp.route("/login", methods=["GET", "POST"])
 @auth_bp.route("/auth/login", methods=["GET", "POST"])
 def login():
-    """Placeholder login view so redirects and navbar links resolve."""
+    """Authenticate and log in students and staff."""
+    if current_user.is_authenticated:
+        return redirect(url_for("auth.dashboard"))
+
+    if request.method == "POST":
+        identifier = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        remember = bool(request.form.get("remember"))
+
+        if not identifier:
+            flash("Username or email is required.", "error")
+            return render_template("auth/login.html", username=identifier), 400
+
+        if not password:
+            flash("Password is required.", "error")
+            return render_template("auth/login.html", username=identifier), 400
+
+        # Support login via username or email (case-insensitive email matching)
+        user = User.query.filter(
+            (User.username == identifier) | (User.email == identifier.lower())
+        ).first()
+
+        if user is None or not user.check_password(password):
+            flash("Invalid username or password.", "error")
+            return render_template("auth/login.html", username=identifier), 401
+
+        login_user(user, remember=remember)
+        flash(f"Welcome back, {user.username}!", "success")
+
+        next_page = request.args.get("next")
+        if not next_page or urlsplit(next_page).netloc != "":
+            next_page = url_for("auth.dashboard")
+
+        return redirect(next_page)
+
     return render_template("auth/login.html")
 
 
 @auth_bp.route("/logout")
 @auth_bp.route("/auth/logout")
+@login_required
 def logout():
-    """Placeholder logout view."""
-    flash("You have been logged out.", "info")
+    """Terminate the authenticated session."""
+    logout_user()
+    flash("You have been successfully logged out.", "info")
     return redirect(url_for("auth.login"))
+
+
+@auth_bp.route("/dashboard")
+@login_required
+def dashboard():
+    """Protected user dashboard displaying profile details and role."""
+    return render_template("auth/dashboard.html", user=current_user)
+
+
+@auth_bp.route("/staff/dashboard")
+@staff_required
+def staff_dashboard():
+    """Protected staff-only view demonstrating role restriction."""
+    return render_template("auth/staff_dashboard.html", user=current_user)

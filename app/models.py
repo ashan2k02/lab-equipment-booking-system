@@ -4,6 +4,20 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from app import db
 
 
+def hash_password(password: str) -> str:
+    """Generate a secure cryptographic hash of a plaintext password."""
+    if not password or not isinstance(password, str):
+        raise ValueError("Password must be a non-empty string.")
+    return generate_password_hash(password)
+
+
+def verify_password(password_hash: str | None, password: str | None) -> bool:
+    """Verify a plaintext password against a stored hash."""
+    if not password or not password_hash:
+        return False
+    return check_password_hash(password_hash, password)
+
+
 class User(UserMixin, db.Model):
     __tablename__ = "user"
 
@@ -39,15 +53,23 @@ class User(UserMixin, db.Model):
         if password is not None:
             self.set_password(password)
 
+    @property
+    def password(self):
+        """Prevent reading of plaintext passwords."""
+        raise AttributeError(
+            "password is not a readable attribute; only password_hash is stored."
+        )
+
+    @password.setter
+    def password(self, password: str) -> None:
+        """Allow setting password directly via property assignment."""
+        self.set_password(password)
+
     def set_password(self, password: str) -> None:
-        if not password or not isinstance(password, str):
-            raise ValueError("Password must be a non-empty string.")
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = hash_password(password)
 
     def check_password(self, password: str) -> bool:
-        if not password or not self.password_hash:
-            return False
-        return check_password_hash(self.password_hash, password)
+        return verify_password(self.password_hash, password)
 
     @property
     def is_staff(self) -> bool:
@@ -56,6 +78,22 @@ class User(UserMixin, db.Model):
     @property
     def is_student(self) -> bool:
         return self.role == self.ROLE_STUDENT
+
+    def has_role(self, *roles: str) -> bool:
+        """Check whether the user possesses any of the specified roles."""
+        return self.role in roles
+
+    def can_manage_equipment(self) -> bool:
+        """Determine whether the user can add, edit, or delete equipment (Staff only, FR-01)."""
+        return self.is_staff
+
+    def can_review_bookings(self) -> bool:
+        """Determine whether the user can approve or reject booking requests (Staff only, FR-04)."""
+        return self.is_staff
+
+    def can_request_bookings(self) -> bool:
+        """Determine whether the user can submit equipment booking requests (FR-02)."""
+        return bool(self.is_authenticated)
 
     def __repr__(self) -> str:
         return f"<User {self.username} ({self.role})>"
