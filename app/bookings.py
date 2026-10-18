@@ -145,7 +145,9 @@ def request_booking():
                 400,
             )
 
-        # Create new booking - automatically assigned STATUS_PENDING ("Pending")
+        # FR-02 Security & Business Rule:
+        # Every valid new booking request must be saved with its initial status set to 'Pending'.
+        # Any form field attempting to specify or override 'status' (e.g., 'Approved') is strictly ignored.
         new_booking = Booking(
             user_id=current_user.id,
             equipment_id=parsed_data["equipment"].id,
