@@ -32,8 +32,9 @@
       </table>
     </div>
 
-    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-      <a href="{{ url_for('home') }}" class="btn btn-primary">Return Home</a>
+    <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem; flex-wrap: wrap;">
+      <a href="{{ url_for('bookings.request_booking') }}" id="dashboard-book-btn" class="btn btn-primary">Book Equipment</a>
+      <a href="{{ url_for('bookings.my_bookings') }}" id="dashboard-my-bookings-btn" class="btn" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-weight: 600;">My Bookings</a>
       {% if user.is_staff %}
         <a href="{{ url_for('auth.staff_dashboard') }}" class="btn" style="background: #0f172a; color: #ffffff;">Staff Console</a>
       {% endif %}
