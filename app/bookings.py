@@ -1,0 +1,200 @@
+from datetime import date, datetime, time
+from typing import Any
+
+from flask import (
+    Blueprint,
+    abort,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
+from flask_login import current_user, login_required
+
+from app import db
+from app.models import Booking, Equipment
+
+bookings_bp = Blueprint("bookings", __name__, url_prefix="/bookings")
+
+
+def validate_booking_input(
+    equipment_id_raw: Any,
+    booking_date_raw: str | None,
+    start_time_raw: str | None,
+    end_time_raw: str | None,
+) -> tuple[bool, str | None, dict[str, Any] | None]:
+    """Validate user input for booking equipment and return (is_valid, error_message, parsed_data)."""
+    # 1. Validate equipment selection
+    if not equipment_id_raw:
+        return False, "Please select an equipment item.", None
+
+    try:
+        equipment_id = int(equipment_id_raw)
+    except (ValueError, TypeError):
+        return False, "Invalid equipment selected.", None
+
+    equipment = db.session.get(Equipment, equipment_id)
+    if not equipment:
+        return False, "The selected equipment does not exist.", None
+
+    if equipment.status == Equipment.STATUS_OUT_OF_SERVICE:
+        return (
+            False,
+            f"'{equipment.name}' is currently out of service and cannot be booked.",
+            None,
+        )
+
+    # 2. Validate booking date
+    if not booking_date_raw or not booking_date_raw.strip():
+        return False, "Booking date is required.", None
+
+    try:
+        booking_date = date.fromisoformat(booking_date_raw.strip())
+    except ValueError:
+        return False, "Invalid booking date format. Please use YYYY-MM-DD.", None
+
+    if booking_date < date.today():
+        return False, "Booking date cannot be in the past.", None
+
+    # 3. Validate start and end time
+    if not start_time_raw or not start_time_raw.strip():
+        return False, "Start time is required.", None
+
+    if not end_time_raw or not end_time_raw.strip():
+        return False, "End time is required.", None
+
+    try:
+        start_cleaned = start_time_raw.strip()
+        if len(start_cleaned.split(":")) == 2:
+            start_cleaned = f"{start_cleaned}:00"
+        start_time = time.fromisoformat(start_cleaned)
+    except ValueError:
+        return False, "Invalid start time format. Please use HH:MM.", None
+
+    try:
+        end_cleaned = end_time_raw.strip()
+        if len(end_cleaned.split(":")) == 2:
+            end_cleaned = f"{end_cleaned}:00"
+        end_time = time.fromisoformat(end_cleaned)
+    except ValueError:
+        return False, "Invalid end time format. Please use HH:MM.", None
+
+    if end_time <= start_time:
+        return False, "End time must be later than start time.", None
+
+    # If booking is for today, verify start time has not already passed
+    if booking_date == date.today():
+        now_time = datetime.now().time()
+        if start_time < now_time:
+            return False, "Booking cannot start in the past.", None
+
+    return (
+        True,
+        None,
+        {
+            "equipment": equipment,
+            "booking_date": booking_date,
+            "start_time": start_time,
+            "end_time": end_time,
+        },
+    )
+
+
+@bookings_bp.route("/request", methods=["GET", "POST"])
+@bookings_bp.route("/new", methods=["GET", "POST"])
+@login_required
+def request_booking():
+    """FR-02: Allows students to select equipment, date, start and end time,
+
+    and submit a booking request. Initial status is always 'Pending'.
+    """
+    # Fetch equipment catalogue items (available items prioritized)
+    available_equipment = Equipment.query.order_by(
+        Equipment.category, Equipment.name
+    ).all()
+
+    today_str = date.today().isoformat()
+    selected_equipment_id = request.args.get("equipment_id", type=int)
+
+    if request.method == "POST":
+        raw_equipment_id = request.form.get("equipment_id")
+        raw_booking_date = request.form.get("booking_date")
+        raw_start_time = request.form.get("start_time")
+        raw_end_time = request.form.get("end_time")
+
+        is_valid, error_msg, parsed_data = validate_booking_input(
+            equipment_id_raw=raw_equipment_id,
+            booking_date_raw=raw_booking_date,
+            start_time_raw=raw_start_time,
+            end_time_raw=raw_end_time,
+        )
+
+        if not is_valid:
+            flash(error_msg, "error")
+            return (
+                render_template(
+                    "bookings/request.html",
+                    equipment_list=available_equipment,
+                    selected_equipment_id=raw_equipment_id,
+                    booking_date=raw_booking_date,
+                    start_time=raw_start_time,
+                    end_time=raw_end_time,
+                    min_date=today_str,
+                ),
+                400,
+            )
+
+        # Create new booking - automatically assigned STATUS_PENDING ("Pending")
+        new_booking = Booking(
+            user_id=current_user.id,
+            equipment_id=parsed_data["equipment"].id,
+            booking_date=parsed_data["booking_date"],
+            start_time=parsed_data["start_time"],
+            end_time=parsed_data["end_time"],
+            status=Booking.STATUS_PENDING,
+        )
+
+        db.session.add(new_booking)
+        db.session.commit()
+
+        flash(
+            f"Booking request for '{parsed_data['equipment'].name}' submitted successfully! "
+            f"Your request is now Pending review.",
+            "success",
+        )
+        return redirect(url_for("bookings.my_bookings"))
+
+    return render_template(
+        "bookings/request.html",
+        equipment_list=available_equipment,
+        selected_equipment_id=selected_equipment_id,
+        min_date=today_str,
+    )
+
+
+@bookings_bp.route("/my-bookings")
+@login_required
+def my_bookings():
+    """Display the list of bookings requested by the current logged-in user."""
+    user_bookings = (
+        Booking.query.filter_by(user_id=current_user.id)
+        .order_by(Booking.booking_date.desc(), Booking.start_time.desc())
+        .all()
+    )
+    return render_template("bookings/my_bookings.html", bookings=user_bookings)
+
+
+@bookings_bp.route("/<int:booking_id>")
+@login_required
+def booking_detail(booking_id: int):
+    """View details of an individual booking."""
+    booking = db.session.get(Booking, booking_id)
+    if not booking:
+        abort(404)
+
+    # Students can only view their own bookings; Staff can view any booking
+    if not current_user.is_staff and booking.user_id != current_user.id:
+        abort(403)
+
+    return render_template("bookings/detail.html", booking=booking)
