@@ -1,7 +1,8 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import pytest
 
+import app.bookings as bookings_module
 from app import create_app, db
 from app.models import Booking, Equipment, User
 
@@ -270,6 +271,7 @@ def test_booking_request_missing_equipment(client, sample_data):
     )
     assert response.status_code == 400
     assert "Please select an equipment item" in response.get_data(as_text=True)
+    assert Booking.query.count() == 0
 
 
 def test_booking_request_out_of_service_equipment(client, sample_data):
@@ -306,6 +308,7 @@ def test_booking_request_date_in_past(client, sample_data):
     )
     assert response.status_code == 400
     assert "past" in response.get_data(as_text=True)
+    assert Booking.query.count() == 0
 
 
 def test_booking_request_end_time_before_start_time(client, sample_data):
@@ -324,6 +327,152 @@ def test_booking_request_end_time_before_start_time(client, sample_data):
     )
     assert response.status_code == 400
     assert "End time must be later than start time" in response.get_data(as_text=True)
+    assert Booking.query.count() == 0
+
+
+def test_booking_request_equal_start_and_end_time_is_rejected(client, sample_data):
+    """Reject a booking whose start and end times are identical."""
+    login_user_helper(client, "test_student")
+    booking_date = (date.today() + timedelta(days=1)).isoformat()
+
+    response = client.post(
+        "/bookings/request",
+        data={
+            "equipment_id": sample_data["equip_available"].id,
+            "booking_date": booking_date,
+            "start_time": "14:00",
+            "end_time": "14:00",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "End time must be later than start time" in response.get_data(as_text=True)
+    assert Booking.query.count() == 0
+
+
+@pytest.mark.parametrize(
+    ("start_time", "end_time", "expected_status", "error_message"),
+    [
+        ("10:00", "10:29", 400, "Booking duration must be at least 30 minutes"),
+        ("10:00", "10:30", 302, None),
+        ("10:00", "14:00", 302, None),
+        ("10:00", "14:01", 400, "Booking duration cannot exceed 4 hours"),
+    ],
+)
+def test_booking_request_duration_limits(
+    client,
+    sample_data,
+    start_time,
+    end_time,
+    expected_status,
+    error_message,
+):
+    """Enforce the inclusive 30-minute to 4-hour booking-duration range."""
+    login_user_helper(client, "test_student")
+    booking_date = (date.today() + timedelta(days=1)).isoformat()
+
+    response = client.post(
+        "/bookings/request",
+        data={
+            "equipment_id": sample_data["equip_available"].id,
+            "booking_date": booking_date,
+            "start_time": start_time,
+            "end_time": end_time,
+        },
+    )
+
+    assert response.status_code == expected_status
+    if error_message:
+        assert error_message in response.get_data(as_text=True)
+        assert Booking.query.count() == 0
+    else:
+        booking = Booking.query.one()
+        assert booking.start_time.strftime("%H:%M") == start_time
+        assert booking.end_time.strftime("%H:%M") == end_time
+
+
+def test_booking_request_start_time_in_past_today_is_rejected(
+    client, sample_data, monkeypatch
+):
+    """Use a fixed clock to reject a start time that has passed today."""
+
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2030, 1, 15, 12, 0, tzinfo=tz)
+
+    monkeypatch.setattr(bookings_module, "datetime", FixedDateTime)
+    login_user_helper(client, "test_student")
+
+    response = client.post(
+        "/bookings/request",
+        data={
+            "equipment_id": sample_data["equip_available"].id,
+            "booking_date": "2030-01-15",
+            "start_time": "11:30",
+            "end_time": "12:30",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "Booking cannot start in the past" in response.get_data(as_text=True)
+    assert Booking.query.count() == 0
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "error_message"),
+    [
+        ("booking_date", "not-a-date", "Invalid booking date format"),
+        ("start_time", "not-a-time", "Invalid start time format"),
+        ("end_time", "not-a-time", "Invalid end time format"),
+    ],
+)
+def test_booking_request_malformed_date_or_time_is_rejected(
+    client, sample_data, field, value, error_message
+):
+    """Reject malformed booking-date and time values without saving a record."""
+    login_user_helper(client, "test_student")
+    payload = {
+        "equipment_id": sample_data["equip_available"].id,
+        "booking_date": (date.today() + timedelta(days=1)).isoformat(),
+        "start_time": "10:00",
+        "end_time": "11:00",
+    }
+    payload[field] = value
+
+    response = client.post("/bookings/request", data=payload)
+
+    assert response.status_code == 400
+    assert error_message in response.get_data(as_text=True)
+    assert Booking.query.count() == 0
+
+
+@pytest.mark.parametrize(
+    ("equipment_id", "error_message"),
+    [
+        ("not-an-id", "Invalid equipment selected"),
+        ("999999", "The selected equipment does not exist"),
+    ],
+)
+def test_booking_request_invalid_or_nonexistent_equipment_is_rejected(
+    client, sample_data, equipment_id, error_message
+):
+    """Reject invalid equipment identifiers without persisting a booking."""
+    login_user_helper(client, "test_student")
+
+    response = client.post(
+        "/bookings/request",
+        data={
+            "equipment_id": equipment_id,
+            "booking_date": (date.today() + timedelta(days=1)).isoformat(),
+            "start_time": "10:00",
+            "end_time": "11:00",
+        },
+    )
+
+    assert response.status_code == 400
+    assert error_message in response.get_data(as_text=True)
+    assert Booking.query.count() == 0
 
 
 # ==========================================
