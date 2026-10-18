@@ -23,6 +23,7 @@
 
     <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
       <a href="{{ url_for('auth.dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+      <a href="{{ url_for('bookings.pending_bookings') }}" class="btn" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-weight: 600;">View Pending Bookings</a>
       <a href="{{ url_for('auth.logout') }}" class="btn" style="background: #f1f5f9; color: var(--text-main); margin-left: auto;">Log Out</a>
     </div>
   </div>

@@ -26,9 +26,9 @@
       <nav>
         <ul class="nav-links">
           <li><a href="{{ url_for('home') }}">Home</a></li>
-          <li><a href="#">Equipment Catalog</a></li>
-          <li><a href="#">Labs & Schedules</a></li>
           {% if current_user and current_user.is_authenticated %}
+            <li><a href="{{ url_for('bookings.request_booking') }}" id="nav-book-link">Book Equipment</a></li>
+            <li><a href="{{ url_for('bookings.my_bookings') }}" id="nav-my-bookings-link">My Bookings</a></li>
             <li>
               <a href="{{ url_for('auth.dashboard') }}" class="nav-dashboard-link">
                 Dashboard ({{ current_user.username }})

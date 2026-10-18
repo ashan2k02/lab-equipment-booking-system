@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Booking #{{ booking.id }} - Lab Equipment Booking System{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper" style="max-width: 680px; margin: 0 auto; width: 100%;">
+  <div class="auth-card" style="max-width: 680px; width: 100%; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);">
+    <div class="auth-header" style="text-align: left; border-bottom: 1px solid var(--border-color); padding-bottom: 1.25rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem;">
+      <div>
+        <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--primary-color); letter-spacing: 0.05em; background: #eff6ff; padding: 0.2rem 0.6rem; border-radius: 9999px; border: 1px solid #bfdbfe;">
+          Booking Request #{{ booking.id }}
+        </span>
+        <h1 style="font-size: 1.6rem; font-weight: 700; color: var(--text-main); margin-top: 0.5rem;">
+          {{ booking.equipment.name if booking.equipment else 'Equipment #' ~ booking.equipment_id }}
+        </h1>
+      </div>
+      <div>
+        {% if booking.status == 'Pending' %}
+          <span style="display: inline-flex; align-items: center; gap: 0.35rem; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; font-weight: 600; font-size: 0.85rem; padding: 0.35rem 0.85rem; border-radius: 9999px;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #d97706;"></span>
+            Pending Approval
+          </span>
+        {% elif booking.status == 'Approved' %}
+          <span style="display: inline-flex; align-items: center; gap: 0.35rem; background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; font-weight: 600; font-size: 0.85rem; padding: 0.35rem 0.85rem; border-radius: 9999px;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #16a34a;"></span>
+            Approved
+          </span>
+        {% elif booking.status == 'Rejected' %}
+          <span style="display: inline-flex; align-items: center; gap: 0.35rem; background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; font-weight: 600; font-size: 0.85rem; padding: 0.35rem 0.85rem; border-radius: 9999px;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #dc2626;"></span>
+            Rejected
+          </span>
+        {% else %}
+          <span style="background: #f1f5f9; color: var(--text-muted); font-weight: 600; font-size: 0.85rem; padding: 0.35rem 0.85rem; border-radius: 9999px;">
+            {{ booking.status }}
+          </span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div style="margin-bottom: 2rem;">
+      <h2 style="font-size: 1.05rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">
+        Reservation Details
+      </h2>
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.95rem;">
+        <tr style="border-bottom: 1px solid var(--border-color);">
+          <td style="padding: 0.75rem 0; font-weight: 600; color: var(--text-muted); width: 35%;">Equipment</td>
+          <td style="padding: 0.75rem 0; color: var(--text-main); font-weight: 600;">
+            {{ booking.equipment.name if booking.equipment else '-' }}
+          </td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border-color);">
+          <td style="padding: 0.75rem 0; font-weight: 600; color: var(--text-muted);">Category</td>
+          <td style="padding: 0.75rem 0; color: var(--text-main);">
+            {{ booking.equipment.category if booking.equipment else '-' }}
+          </td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border-color);">
+          <td style="padding: 0.75rem 0; font-weight: 600; color: var(--text-muted);">Requested By</td>
+          <td style="padding: 0.75rem 0; color: var(--text-main);">
+            {{ booking.user.username if booking.user else 'User #' ~ booking.user_id }}
+            <span style="font-size: 0.82rem; color: var(--text-muted); margin-left: 0.35rem;">
+              ({{ booking.user.email if booking.user else '' }})
+            </span>
+          </td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border-color);">
+          <td style="padding: 0.75rem 0; font-weight: 600; color: var(--text-muted);">Booking Date</td>
+          <td style="padding: 0.75rem 0; color: var(--text-main); font-weight: 500;">
+            {{ booking.booking_date.strftime('%A, %B %d, %Y') if booking.booking_date else '-' }}
+          </td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border-color);">
+          <td style="padding: 0.75rem 0; font-weight: 600; color: var(--text-muted);">Time Window</td>
+          <td style="padding: 0.75rem 0; color: var(--text-main);">
+            {{ booking.start_time.strftime('%H:%M') }} - {{ booking.end_time.strftime('%H:%M') }}
+            <span style="font-size: 0.85rem; color: var(--text-muted); margin-left: 0.5rem;">
+              ({{ booking.duration_minutes }} minutes)
+            </span>
+          </td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border-color);">
+          <td style="padding: 0.75rem 0; font-weight: 600; color: var(--text-muted);">Request Submitted</td>
+          <td style="padding: 0.75rem 0; color: var(--text-muted); font-size: 0.88rem;">
+            {{ booking.created_at.strftime('%Y-%m-%d %H:%M UTC') if booking.created_at else '-' }}
+          </td>
+        </tr>
+        {% if booking.rejection_reason %}
+          <tr style="border-bottom: 1px solid var(--border-color); background: #fef2f2;">
+            <td style="padding: 0.75rem 0.5rem; font-weight: 600; color: #991b1b;">Rejection Reason</td>
+            <td style="padding: 0.75rem 0.5rem; color: #991b1b;">
+              {{ booking.rejection_reason }}
+            </td>
+          </tr>
+        {% endif %}
+      </table>
+    </div>
+
+    <div style="display: flex; gap: 1rem; align-items: center;">
+      <a
+        href="{{ url_for('bookings.my_bookings') }}"
+        class="btn btn-primary"
+        style="padding: 0.75rem 1.4rem; font-weight: 600; border-radius: 8px; text-decoration: none;"
+      >
+        &larr; Back to My Bookings
+      </a>
+      <a
+        href="{{ url_for('bookings.request_booking') }}"
+        class="btn"
+        style="padding: 0.75rem 1.25rem; background: #f1f5f9; color: var(--text-main); font-weight: 500; border-radius: 8px; text-decoration: none;"
+      >
+        Request Another Equipment
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
