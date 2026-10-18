@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Log In - Lab Equipment Booking System{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-header">
+      <h1>Account Login</h1>
+      <p>Log in with your username and password.</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.login') }}">
+      <div class="form-group">
+        <label for="username" class="form-label">Username</label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          class="form-control"
+          placeholder="Enter your username"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="password" class="form-label">Password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          class="form-control"
+          placeholder="Enter your password"
+          required
+        >
+      </div>
+
+      <button type="submit" id="login-btn" class="btn btn-primary btn-block">
+        Log In
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <p>Don't have an account? <a href="{{ url_for('auth.register') }}">Register as Student</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}

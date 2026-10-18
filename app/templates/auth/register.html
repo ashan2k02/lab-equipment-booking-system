@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Student Registration - Lab Equipment Booking System{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-header">
+      <h1>Student Registration</h1>
+      <p>Create your student account to request laboratory equipment.</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+      <div class="form-group">
+        <label for="username" class="form-label">Username</label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          class="form-control"
+          placeholder="e.g. ashan_eranga"
+          value="{{ username or '' }}"
+          required
+          autocomplete="username"
+        >
+        <span class="form-hint">At least 3 characters. Letters, numbers and underscores only.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="email" class="form-label">Email Address</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          class="form-control"
+          placeholder="e.g. student@university.ac.lk"
+          value="{{ email or '' }}"
+          required
+          autocomplete="email"
+        >
+        <span class="form-hint">Must be a valid email address.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="password" class="form-label">Password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          class="form-control"
+          placeholder="Enter a secure password"
+          required
+          autocomplete="new-password"
+        >
+        <span class="form-hint">Must be at least 6 characters long.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="confirm_password" class="form-label">Confirm Password</label>
+        <input
+          type="password"
+          id="confirm_password"
+          name="confirm_password"
+          class="form-control"
+          placeholder="Re-enter your password"
+          required
+          autocomplete="new-password"
+        >
+      </div>
+
+      <button type="submit" id="register-btn" class="btn btn-primary btn-block">
+        Create Student Account
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <p>Already have an account? <a href="{{ url_for('auth.login') }}">Log in here</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}
