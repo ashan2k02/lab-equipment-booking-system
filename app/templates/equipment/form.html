@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ title }}</h1>
+
+<form method="post">
+  <p>
+    <label for="name">Name</label><br>
+    <input type="text" id="name" name="name" value="{{ values.get('name', '') }}" required>
+  </p>
+  <p>
+    <label for="category">Category</label><br>
+    <input type="text" id="category" name="category" value="{{ values.get('category', '') }}" required>
+  </p>
+  <p>
+    <label for="description">Description</label><br>
+    <textarea id="description" name="description" rows="3">{{ values.get('description', '') }}</textarea>
+  </p>
+  <p>
+    <label for="status">Status</label><br>
+    <select id="status" name="status">
+      {% for s in statuses %}
+      <option value="{{ s }}" {% if values.get('status') == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </p>
+  <button type="submit">Save</button>
+  <a href="{{ url_for('equipment.list_equipment') }}">Cancel</a>
+</form>
+{% endblock %}

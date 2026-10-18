@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Equipment Catalogue</h1>
+
+<form method="get" action="{{ url_for('equipment.list_equipment') }}">
+  <label for="category">Filter by category:</label>
+  <select name="category" id="category">
+    <option value="">All categories</option>
+    {% for cat in categories %}
+    <option value="{{ cat }}" {% if cat == selected_category %}selected{% endif %}>{{ cat }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit">Filter</button>
+</form>
+
+{% if current_user.is_staff %}
+<p><a href="{{ url_for('equipment.add_equipment') }}">+ Add equipment</a></p>
+{% endif %}
+
+{% if items %}
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Category</th>
+      <th>Description</th>
+      <th>Status</th>
+      {% if current_user.is_staff %}<th>Actions</th>{% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ item.name }}</td>
+      <td>{{ item.category }}</td>
+      <td>{{ item.description or "" }}</td>
+      <td>{{ item.status }}</td>
+      {% if current_user.is_staff %}
+      <td>
+        <a href="{{ url_for('equipment.edit_equipment', equipment_id=item.id) }}">Edit</a>
+        <form method="post" action="{{ url_for('equipment.delete_equipment', equipment_id=item.id) }}" style="display:inline" onsubmit="return confirm('Delete this equipment?');">
+          <button type="submit">Delete</button>
+        </form>
+      </td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No equipment found.</p>
+{% endif %}
+{% endblock %}
