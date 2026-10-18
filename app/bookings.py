@@ -13,6 +13,7 @@ from flask import (
 from flask_login import current_user, login_required
 
 from app import db
+from app.auth import staff_required
 from app.models import Booking, Equipment
 
 bookings_bp = Blueprint("bookings", __name__, url_prefix="/bookings")
@@ -185,6 +186,20 @@ def my_bookings():
         .all()
     )
     return render_template("bookings/my_bookings.html", bookings=user_bookings)
+
+
+@bookings_bp.route("/pending")
+@staff_required
+def pending_bookings():
+    """Display pending booking requests for authorized staff members."""
+    pending_requests = (
+        Booking.query.filter_by(status=Booking.STATUS_PENDING)
+        .order_by(Booking.booking_date, Booking.start_time, Booking.created_at)
+        .all()
+    )
+    return render_template(
+        "bookings/pending_bookings.html", bookings=pending_requests
+    )
 
 
 @bookings_bp.route("/<int:booking_id>")
