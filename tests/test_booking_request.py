@@ -193,6 +193,62 @@ def test_student_can_submit_valid_booking_request(client, sample_data, session):
     assert created_booking.end_time.hour == 16
 
 
+def test_student_cannot_override_booking_status_via_form_tampering(
+    client, sample_data, session
+):
+    """Students cannot override or choose the booking status through form data.
+
+    Even if a malicious user submits status='Approved', the backend must strictly
+    assign 'Pending'.
+    """
+    login_user_helper(client, "test_student")
+    booking_date = (date.today() + timedelta(days=3)).isoformat()
+
+    response = client.post(
+        "/bookings/request",
+        data={
+            "equipment_id": sample_data["equip_available"].id,
+            "booking_date": booking_date,
+            "start_time": "11:00",
+            "end_time": "12:30",
+            "status": "Approved",  # Attempted privilege escalation
+        },
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+
+    # Ensure the newly saved booking has status 'Pending' and NOT 'Approved'
+    created_booking = Booking.query.filter_by(
+        user_id=sample_data["student"].id,
+        booking_date=date.fromisoformat(booking_date),
+    ).first()
+    assert created_booking is not None
+    assert created_booking.status == Booking.STATUS_PENDING
+    assert created_booking.status != "Approved"
+    assert created_booking.is_pending is True
+    assert created_booking.is_approved is False
+
+
+def test_booking_model_omitted_status_defaults_to_pending(session, sample_data):
+    """When Booking model is instantiated without specifying status, it defaults to Pending."""
+    tomorrow = date.today() + timedelta(days=1)
+    booking = Booking(
+        user_id=sample_data["student"].id,
+        equipment_id=sample_data["equip_available"].id,
+        booking_date=tomorrow,
+        start_time="13:00",
+        end_time="14:00",
+    )
+    session.add(booking)
+    session.commit()
+
+    saved = db.session.get(Booking, booking.id)
+    assert saved is not None
+    assert saved.status == Booking.STATUS_PENDING
+    assert saved.is_pending is True
+
+
 # ==========================================
 # 4. Input Validation Tests
 # ==========================================
