@@ -438,12 +438,11 @@ def test_user_and_equipment_model_coexistence(app):
             role=User.ROLE_STAFF,
             password="techpassword123",
         )
-        equipment = Equipment(
-            name="Spectrum Analyzer",
-            category="RF Equipment",
-            description="6 GHz high frequency analyzer",
-            status="Available",
-        )
+        equipment = Equipment()
+        equipment.name = "Spectrum Analyzer"
+        equipment.category = "RF Equipment"
+        equipment.description = "6 GHz high frequency analyzer"
+        equipment.status = "Available"
         db.session.add(user)
         db.session.add(equipment)
         db.session.commit()
