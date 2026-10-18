@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Lab Equipment Booking System{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper" style="max-width: 680px; margin: 0 auto;">
+  <div class="auth-card" style="max-width: 680px;">
+    <div class="auth-header" style="text-align: left; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+      <h1>Hello, {{ user.username }}!</h1>
+      <p>Welcome to your personal account dashboard.</p>
+    </div>
+
+    <div style="margin: 1.5rem 0;">
+      <h2 style="font-size: 1.15rem; margin-bottom: 1rem;">Account Details</h2>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr style="border-bottom: 1px solid var(--border-color);">
+          <td style="padding: 0.75rem 0; font-weight: 600; color: var(--text-muted); width: 30%;">Username</td>
+          <td style="padding: 0.75rem 0;">{{ user.username }}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border-color);">
+          <td style="padding: 0.75rem 0; font-weight: 600; color: var(--text-muted);">Email Address</td>
+          <td style="padding: 0.75rem 0;">{{ user.email }}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border-color);">
+          <td style="padding: 0.75rem 0; font-weight: 600; color: var(--text-muted);">Account Role</td>
+          <td style="padding: 0.75rem 0;">
+            <span style="background: #dbeafe; color: #1e40af; font-weight: 600; padding: 0.25rem 0.65rem; border-radius: 9999px; font-size: 0.85rem;">
+              {{ user.role }}
+            </span>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+      <a href="{{ url_for('home') }}" class="btn btn-primary">Return Home</a>
+      {% if user.is_staff %}
+        <a href="{{ url_for('auth.staff_dashboard') }}" class="btn" style="background: #0f172a; color: #ffffff;">Staff Console</a>
+      {% endif %}
+      <a href="{{ url_for('auth.logout') }}" class="btn" style="background: #f1f5f9; color: var(--text-main); margin-left: auto;">Log Out</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

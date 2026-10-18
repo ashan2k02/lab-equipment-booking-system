@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Console - Lab Equipment Booking System{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper" style="max-width: 680px; margin: 0 auto;">
+  <div class="auth-card" style="max-width: 680px;">
+    <div class="auth-header" style="text-align: left; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+      <h1>Staff Administration Console</h1>
+      <p>Authorized access only &middot; Laboratory Staff Management</p>
+    </div>
+
+    <div style="margin: 1.5rem 0;">
+      <p style="margin-bottom: 1rem;">Welcome, <strong>{{ user.username }}</strong>. You are authenticated as laboratory staff.</p>
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 1rem;">
+        <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Staff Permissions</h3>
+        <ul style="padding-left: 1.25rem; color: var(--text-muted); font-size: 0.92rem;">
+          <li>Add, edit, and delete equipment (FR-01)</li>
+          <li>Review and approve or reject booking requests (FR-04)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+      <a href="{{ url_for('auth.dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+      <a href="{{ url_for('auth.logout') }}" class="btn" style="background: #f1f5f9; color: var(--text-main); margin-left: auto;">Log Out</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
