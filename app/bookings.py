@@ -42,12 +42,22 @@ def validate_booking_input(
     if not equipment:
         return False, "The selected equipment does not exist.", None
 
+    if equipment.status not in Equipment.VALID_STATUSES:
+        return (
+            False,
+            f"'{equipment.name}' has an invalid availability status and cannot be booked.",
+            None,
+        )
+
     if equipment.status == Equipment.STATUS_OUT_OF_SERVICE:
         return (
             False,
             f"'{equipment.name}' is currently out of service and cannot be booked.",
             None,
         )
+
+    if equipment.status != Equipment.STATUS_AVAILABLE:
+        return False, f"'{equipment.name}' is currently unavailable and cannot be booked.", None
 
     # 2. Validate booking date
     if not booking_date_raw or not booking_date_raw.strip():
@@ -100,6 +110,20 @@ def validate_booking_input(
     # If booking is for today, verify start time has not already passed
     if booking_date == current_date and start_time < current_datetime.time():
         return False, "Booking cannot start in the past.", None
+
+    conflicting_booking = Booking.query.filter(
+        Booking.equipment_id == equipment.id,
+        Booking.booking_date == booking_date,
+        Booking.status.in_((Booking.STATUS_PENDING, Booking.STATUS_APPROVED)),
+        Booking.start_time < end_time,
+        Booking.end_time > start_time,
+    ).first()
+    if conflicting_booking:
+        return (
+            False,
+            "This equipment already has a Pending or Approved booking that overlaps the requested time.",
+            None,
+        )
 
     return (
         True,
