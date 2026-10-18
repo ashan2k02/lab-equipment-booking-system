@@ -290,6 +290,36 @@ def test_booking_request_out_of_service_equipment(client, sample_data):
     )
     assert response.status_code == 400
     assert "out of service" in response.get_data(as_text=True)
+    assert Booking.query.count() == 0
+
+
+def test_booking_request_unrecognized_equipment_status_is_rejected(
+    client, sample_data, session
+):
+    """Reject equipment whose status is not one of the recognised constants."""
+    unexpected_equipment = Equipment(
+        name="Maintenance Analyzer",
+        category="Electronics",
+        description="Awaiting a status update",
+        status="Maintenance",
+    )
+    session.add(unexpected_equipment)
+    session.commit()
+
+    login_user_helper(client, "test_student")
+    response = client.post(
+        "/bookings/request",
+        data={
+            "equipment_id": unexpected_equipment.id,
+            "booking_date": (date.today() + timedelta(days=1)).isoformat(),
+            "start_time": "10:00",
+            "end_time": "11:00",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "invalid availability status" in response.get_data(as_text=True)
+    assert Booking.query.count() == 0
 
 
 def test_booking_request_date_in_past(client, sample_data):
@@ -391,6 +421,35 @@ def test_booking_request_duration_limits(
         assert booking.end_time.strftime("%H:%M") == end_time
 
 
+def test_validation_failure_rerenders_form_with_error_and_submitted_values(
+    client, sample_data, session
+):
+    """Return the request form, flash the error, and leave the session clean."""
+    login_user_helper(client, "test_student")
+    booking_date = (date.today() + timedelta(days=1)).isoformat()
+
+    response = client.post(
+        "/bookings/request",
+        data={
+            "equipment_id": sample_data["equip_available"].id,
+            "booking_date": booking_date,
+            "start_time": "10:00",
+            "end_time": "10:29",
+        },
+    )
+
+    html = response.get_data(as_text=True)
+    assert response.status_code == 400
+    assert "Booking duration must be at least 30 minutes" in html
+    assert 'id="booking-request-form"' in html
+    assert f'value="{booking_date}"' in html
+    assert 'value="10:00"' in html
+    assert 'value="10:29"' in html
+    assert Booking.query.count() == 0
+    assert not session.new
+    assert not session.dirty
+
+
 def test_booking_request_start_time_in_past_today_is_rejected(
     client, sample_data, monkeypatch
 ):
@@ -473,6 +532,112 @@ def test_booking_request_invalid_or_nonexistent_equipment_is_rejected(
     assert response.status_code == 400
     assert error_message in response.get_data(as_text=True)
     assert Booking.query.count() == 0
+
+
+@pytest.mark.parametrize(
+    (
+        "existing_status",
+        "requested_start_time",
+        "requested_end_time",
+        "same_equipment",
+        "same_date",
+        "expected_status_code",
+    ),
+    [
+        (Booking.STATUS_PENDING, "10:00", "11:00", True, True, 400),
+        (Booking.STATUS_PENDING, "09:30", "10:30", True, True, 400),
+        (Booking.STATUS_PENDING, "10:30", "11:30", True, True, 400),
+        (Booking.STATUS_PENDING, "10:15", "10:45", True, True, 400),
+        (Booking.STATUS_PENDING, "09:00", "12:00", True, True, 400),
+        (Booking.STATUS_PENDING, "09:00", "10:00", True, True, 302),
+        (Booking.STATUS_PENDING, "11:00", "12:00", True, True, 302),
+        (Booking.STATUS_APPROVED, "10:00", "11:00", True, True, 400),
+        (Booking.STATUS_REJECTED, "10:00", "11:00", True, True, 302),
+        (Booking.STATUS_CANCELLED, "10:00", "11:00", True, True, 302),
+        (Booking.STATUS_PENDING, "10:30", "11:30", False, True, 302),
+        (Booking.STATUS_PENDING, "10:30", "11:30", True, False, 302),
+    ],
+    ids=[
+        "exact-duplicate",
+        "partial-overlap-at-start",
+        "partial-overlap-at-end",
+        "contained-within-existing",
+        "contains-existing",
+        "adjacent-before",
+        "adjacent-after",
+        "approved-blocks",
+        "rejected-does-not-block",
+        "cancelled-does-not-block",
+        "different-equipment",
+        "different-date",
+    ],
+)
+def test_booking_request_overlap_validation(
+    client,
+    sample_data,
+    session,
+    existing_status,
+    requested_start_time,
+    requested_end_time,
+    same_equipment,
+    same_date,
+    expected_status_code,
+):
+    """Only overlapping Pending and Approved reservations block a request."""
+    existing_date = date.today() + timedelta(days=2)
+    existing_equipment = sample_data["equip_available"]
+    requested_equipment = existing_equipment
+
+    if not same_equipment:
+        requested_equipment = Equipment(
+            name="Second Digital Multimeter",
+            category="Electronics",
+            description="A separate item for overlap validation",
+            status=Equipment.STATUS_AVAILABLE,
+        )
+        session.add(requested_equipment)
+        session.commit()
+
+    existing_booking = Booking(
+        user_id=sample_data["student"].id,
+        equipment_id=existing_equipment.id,
+        booking_date=existing_date,
+        start_time="10:00",
+        end_time="11:00",
+        status=existing_status,
+    )
+    session.add(existing_booking)
+    session.commit()
+
+    requested_date = existing_date if same_date else existing_date + timedelta(days=1)
+    login_user_helper(client, "test_student")
+    response = client.post(
+        "/bookings/request",
+        data={
+            "equipment_id": requested_equipment.id,
+            "booking_date": requested_date.isoformat(),
+            "start_time": requested_start_time,
+            "end_time": requested_end_time,
+        },
+    )
+
+    assert response.status_code == expected_status_code
+    if expected_status_code == 400:
+        assert "overlaps the requested time" in response.get_data(as_text=True)
+        assert Booking.query.count() == 1
+        persisted_booking = db.session.get(Booking, existing_booking.id)
+        assert persisted_booking.status == existing_status
+        assert persisted_booking.booking_date == existing_date
+        assert persisted_booking.start_time.strftime("%H:%M") == "10:00"
+        assert persisted_booking.end_time.strftime("%H:%M") == "11:00"
+        assert not session.new
+        assert not session.dirty
+    else:
+        assert Booking.query.count() == 2
+        created_booking = Booking.query.order_by(Booking.id.desc()).first()
+        assert created_booking.status == Booking.STATUS_PENDING
+        assert created_booking.equipment_id == requested_equipment.id
+        assert created_booking.booking_date == requested_date
 
 
 # ==========================================
