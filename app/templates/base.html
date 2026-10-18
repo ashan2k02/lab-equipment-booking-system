@@ -17,11 +17,18 @@
         <ul class="nav-links">
           <li><a href="{{ url_for('home') }}">Home</a></li>
           {% if current_user and current_user.is_authenticated %}
-            <li><a href="#">Dashboard ({{ current_user.username }})</a></li>
-            <li><a href="{{ url_for('auth.logout') }}">Log Out</a></li>
+            <li>
+              <a href="{{ url_for('auth.dashboard') }}">
+                Dashboard ({{ current_user.username }})
+                <span style="font-size: 0.75rem; background: #e2e8f0; padding: 0.15rem 0.45rem; border-radius: 4px; margin-left: 0.3rem;">
+                  {{ current_user.role }}
+                </span>
+              </a>
+            </li>
+            <li><a href="{{ url_for('auth.logout') }}" id="logout-link">Log Out</a></li>
           {% else %}
             <li><a href="{{ url_for('auth.login') }}">Log In</a></li>
-            <li><a href="{{ url_for('auth.register') }}" class="active">Student Register</a></li>
+            <li><a href="{{ url_for('auth.register') }}">Student Register</a></li>
           {% endif %}
         </ul>
       </nav>

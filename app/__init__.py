@@ -1,7 +1,9 @@
 from flask import Flask
+from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
+login_manager = LoginManager()
 
 
 def create_app(test_config=None):
@@ -16,8 +18,20 @@ def create_app(test_config=None):
 
     db.init_app(app)
 
-    from app import models  # noqa: F401
+    login_manager.login_view = "auth.login"
+    login_manager.login_message = "Please log in to access this page."
+    login_manager.login_message_category = "info"
+    login_manager.init_app(app)
+
+    from app import models
     from app.auth import auth_bp
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        try:
+            return db.session.get(models.User, int(user_id))
+        except (ValueError, TypeError):
+            return None
 
     app.register_blueprint(auth_bp)
 
