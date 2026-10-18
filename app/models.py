@@ -79,6 +79,22 @@ class User(UserMixin, db.Model):
     def is_student(self) -> bool:
         return self.role == self.ROLE_STUDENT
 
+    def has_role(self, *roles: str) -> bool:
+        """Check whether the user possesses any of the specified roles."""
+        return self.role in roles
+
+    def can_manage_equipment(self) -> bool:
+        """Determine whether the user can add, edit, or delete equipment (Staff only, FR-01)."""
+        return self.is_staff
+
+    def can_review_bookings(self) -> bool:
+        """Determine whether the user can approve or reject booking requests (Staff only, FR-04)."""
+        return self.is_staff
+
+    def can_request_bookings(self) -> bool:
+        """Determine whether the user can submit equipment booking requests (FR-02)."""
+        return bool(self.is_authenticated)
+
     def __repr__(self) -> str:
         return f"<User {self.username} ({self.role})>"
 

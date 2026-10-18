@@ -62,17 +62,59 @@ def validate_registration_input(
     return True, None
 
 
+def role_required(*roles: str):
+    """Decorator to restrict route access to authenticated users having one of the specified roles.
+
+    Unauthenticated requests are redirected to login via Flask-Login.
+    Authenticated users lacking one of the required roles are rejected with HTTP 403 Forbidden.
+    """
+
+    def decorator(f):
+        @wraps(f)
+        @login_required
+        def decorated_function(*args, **kwargs):
+            if not current_user.is_authenticated or current_user.role not in roles:
+                abort(403)
+            return f(*args, **kwargs)
+
+        return decorated_function
+
+    return decorator
+
+
+roles_required = role_required
+
+
 def staff_required(f):
     """Decorator to restrict access to authenticated Staff users only."""
+    return role_required(User.ROLE_STAFF)(f)
 
-    @wraps(f)
-    @login_required
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_staff:
-            abort(403)
-        return f(*args, **kwargs)
 
-    return decorated_function
+def student_required(f):
+    """Decorator to restrict access to authenticated Student users only."""
+    return role_required(User.ROLE_STUDENT)(f)
+
+
+def permission_required(permission_name: str):
+    """Decorator to restrict route access based on a User capability/permission check.
+
+    Evaluates the named method or attribute on current_user (e.g., 'can_manage_equipment',
+    'can_review_bookings'). If False or missing, raises HTTP 403 Forbidden.
+    """
+
+    def decorator(f):
+        @wraps(f)
+        @login_required
+        def decorated_function(*args, **kwargs):
+            check = getattr(current_user, permission_name, None)
+            allowed = check() if callable(check) else bool(check)
+            if not allowed:
+                abort(403)
+            return f(*args, **kwargs)
+
+        return decorated_function
+
+    return decorator
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])

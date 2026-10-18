@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, render_template
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 
@@ -37,6 +37,14 @@ def create_app(test_config=None):
 
     with app.app_context():
         db.create_all()
+
+    @app.errorhandler(403)
+    def forbidden_error(error):
+        return render_template("errors/403.html"), 403
+
+    @app.errorhandler(401)
+    def unauthorized_error(error):
+        return render_template("errors/401.html"), 401
 
     @app.route("/")
     def home():
