@@ -25,6 +25,9 @@ def validate_booking_input(
     end_time_raw: str | None,
 ) -> tuple[bool, str | None, dict[str, Any] | None]:
     """Validate user input for booking equipment and return (is_valid, error_message, parsed_data)."""
+    current_datetime = datetime.now()
+    current_date = current_datetime.date()
+
     # 1. Validate equipment selection
     if not equipment_id_raw:
         return False, "Please select an equipment item.", None
@@ -51,10 +54,10 @@ def validate_booking_input(
 
     try:
         booking_date = date.fromisoformat(booking_date_raw.strip())
-    except ValueError:
+    except (TypeError, ValueError):
         return False, "Invalid booking date format. Please use YYYY-MM-DD.", None
 
-    if booking_date < date.today():
+    if booking_date < current_date:
         return False, "Booking date cannot be in the past.", None
 
     # 3. Validate start and end time
@@ -69,7 +72,7 @@ def validate_booking_input(
         if len(start_cleaned.split(":")) == 2:
             start_cleaned = f"{start_cleaned}:00"
         start_time = time.fromisoformat(start_cleaned)
-    except ValueError:
+    except (TypeError, ValueError):
         return False, "Invalid start time format. Please use HH:MM.", None
 
     try:
@@ -77,17 +80,25 @@ def validate_booking_input(
         if len(end_cleaned.split(":")) == 2:
             end_cleaned = f"{end_cleaned}:00"
         end_time = time.fromisoformat(end_cleaned)
-    except ValueError:
+    except (TypeError, ValueError):
         return False, "Invalid end time format. Please use HH:MM.", None
 
     if end_time <= start_time:
         return False, "End time must be later than start time.", None
 
+    duration_seconds = (
+        datetime.combine(booking_date, end_time)
+        - datetime.combine(booking_date, start_time)
+    ).total_seconds()
+    if duration_seconds < 30 * 60:
+        return False, "Booking duration must be at least 30 minutes.", None
+
+    if duration_seconds > 4 * 60 * 60:
+        return False, "Booking duration cannot exceed 4 hours.", None
+
     # If booking is for today, verify start time has not already passed
-    if booking_date == date.today():
-        now_time = datetime.now().time()
-        if start_time < now_time:
-            return False, "Booking cannot start in the past.", None
+    if booking_date == current_date and start_time < current_datetime.time():
+        return False, "Booking cannot start in the past.", None
 
     return (
         True,
