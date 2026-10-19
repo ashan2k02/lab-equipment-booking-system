@@ -26,6 +26,7 @@ def create_app(test_config=None):
     from app import models
     from app.auth import auth_bp
     from app.bookings import bookings_bp
+    from app.equipment import equipment_bp
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -35,6 +36,7 @@ def create_app(test_config=None):
             return None
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(equipment_bp)
     app.register_blueprint(bookings_bp)
 
     with app.app_context():
