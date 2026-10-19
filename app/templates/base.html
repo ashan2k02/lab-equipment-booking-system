@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -27,6 +28,7 @@
         <ul class="nav-links">
           <li><a href="{{ url_for('home') }}">Home</a></li>
           {% if current_user and current_user.is_authenticated %}
+            <li><a href="{{ url_for('equipment.list_equipment') }}" id="nav-equipment-link">Equipment</a></li>
             <li><a href="{{ url_for('bookings.request_booking') }}" id="nav-book-link">Book Equipment</a></li>
             <li><a href="{{ url_for('bookings.my_bookings') }}" id="nav-my-bookings-link">My Bookings</a></li>
             <li>
