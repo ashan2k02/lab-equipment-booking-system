@@ -27,8 +27,13 @@
         <ul class="nav-links">
           <li><a href="{{ url_for('home') }}">Home</a></li>
           {% if current_user and current_user.is_authenticated %}
+            <li><a href="{{ url_for('equipment.list_equipment') }}" id="nav-catalogue-link">Equipment Catalogue</a></li>
             <li><a href="{{ url_for('bookings.request_booking') }}" id="nav-book-link">Book Equipment</a></li>
             <li><a href="{{ url_for('bookings.my_bookings') }}" id="nav-my-bookings-link">My Bookings</a></li>
+            {% if current_user.is_staff %}
+              <li><a href="{{ url_for('equipment.add_equipment') }}" id="nav-add-equipment-link" style="color: #2563eb; font-weight: 600;">+ Add Equipment</a></li>
+              <li><a href="{{ url_for('auth.staff_dashboard') }}" id="nav-staff-dashboard-link">Staff Console</a></li>
+            {% endif %}
             <li>
               <a href="{{ url_for('auth.dashboard') }}" class="nav-dashboard-link">
                 Dashboard ({{ current_user.username }})

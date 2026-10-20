@@ -7,6 +7,7 @@ from flask import (
     url_for,
 )
 from flask_login import login_required
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app import db
 from app.auth import staff_required
@@ -17,11 +18,16 @@ equipment_bp = Blueprint("equipment", __name__, url_prefix="/equipment")
 
 def read_equipment_form(form):
     """Read and validate the equipment form. Returns (values, error_message)."""
+    raw_name = form.get("name")
+    raw_category = form.get("category")
+    raw_description = form.get("description")
+    raw_status = form.get("status")
+
     values = {
-        "name": form.get("name", "").strip(),
-        "category": form.get("category", "").strip(),
-        "description": form.get("description", "").strip(),
-        "status": form.get("status", Equipment.STATUS_AVAILABLE),
+        "name": raw_name.strip() if raw_name else "",
+        "category": raw_category.strip() if raw_category else "",
+        "description": raw_description.strip() if raw_description else "",
+        "status": raw_status.strip() if raw_status else Equipment.STATUS_AVAILABLE,
     }
 
     if not values["name"]:
@@ -85,10 +91,47 @@ def add_equipment():
                 400,
             )
 
-        db.session.add(Equipment(**values))
-        db.session.commit()
-        flash("Equipment added successfully.", "success")
-        return redirect(url_for("equipment.list_equipment"))
+        try:
+            item = Equipment(
+                name=values["name"],
+                category=values["category"],
+                description=values["description"] or None,
+                status=values["status"],
+            )
+            db.session.add(item)
+            db.session.commit()
+            flash("Equipment added successfully.", "success")
+            return redirect(url_for("equipment.list_equipment"))
+        except IntegrityError:
+            db.session.rollback()
+            flash(
+                "An equipment item with these details already exists or violates database constraints.",
+                "error",
+            )
+            return (
+                render_template(
+                    "equipment/form.html",
+                    title="Add Equipment",
+                    values=values,
+                    statuses=Equipment.VALID_STATUSES,
+                ),
+                400,
+            )
+        except SQLAlchemyError:
+            db.session.rollback()
+            flash(
+                "Failed to add equipment due to a database error. Please try again.",
+                "error",
+            )
+            return (
+                render_template(
+                    "equipment/form.html",
+                    title="Add Equipment",
+                    values=values,
+                    statuses=Equipment.VALID_STATUSES,
+                ),
+                500,
+            )
 
     return render_template(
         "equipment/form.html",
@@ -118,13 +161,44 @@ def edit_equipment(equipment_id):
                 400,
             )
 
-        item.name = values["name"]
-        item.category = values["category"]
-        item.description = values["description"]
-        item.status = values["status"]
-        db.session.commit()
-        flash("Equipment updated successfully.", "success")
-        return redirect(url_for("equipment.list_equipment"))
+        try:
+            item.name = values["name"]
+            item.category = values["category"]
+            item.description = values["description"] or None
+            item.status = values["status"]
+            db.session.commit()
+            flash("Equipment updated successfully.", "success")
+            return redirect(url_for("equipment.list_equipment"))
+        except IntegrityError:
+            db.session.rollback()
+            flash(
+                "An equipment item with these details already exists or violates database constraints.",
+                "error",
+            )
+            return (
+                render_template(
+                    "equipment/form.html",
+                    title="Edit Equipment",
+                    values=values,
+                    statuses=Equipment.VALID_STATUSES,
+                ),
+                400,
+            )
+        except SQLAlchemyError:
+            db.session.rollback()
+            flash(
+                "Failed to update equipment due to a database error. Please try again.",
+                "error",
+            )
+            return (
+                render_template(
+                    "equipment/form.html",
+                    title="Edit Equipment",
+                    values=values,
+                    statuses=Equipment.VALID_STATUSES,
+                ),
+                500,
+            )
 
     return render_template(
         "equipment/form.html",
@@ -144,7 +218,11 @@ def edit_equipment(equipment_id):
 def delete_equipment(equipment_id):
     """Staff only: delete an equipment item."""
     item = db.get_or_404(Equipment, equipment_id)
-    db.session.delete(item)
-    db.session.commit()
-    flash("Equipment deleted.", "info")
+    try:
+        db.session.delete(item)
+        db.session.commit()
+        flash("Equipment deleted.", "info")
+    except SQLAlchemyError:
+        db.session.rollback()
+        flash("Failed to delete equipment due to a database error.", "error")
     return redirect(url_for("equipment.list_equipment"))
