@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Console - Lab Equipment Booking System{% endblock %}
+
+{% block content %}
+<div class="staff-dashboard-container" style="max-width: 1120px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 1.75rem;">
+
+  <!-- Console Header & User Banner -->
+  <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.75rem 2rem; box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.35rem;">
+        <span class="nav-role-badge" style="background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; font-size: 0.75rem; letter-spacing: 0.05em;">LABORATORY STAFF CONSOLE</span>
+        <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 500;">Authorized access only &middot; Laboratory Staff Management</span>
+      </div>
+      <h1 style="font-size: 1.85rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.02em; margin: 0;">
+        Staff Administration Console
+      </h1>
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.35rem;">
+        Welcome back, <strong>{{ user.username }}</strong>. Manage lab equipment inventory, monitor availability, and review booking requests.
+      </p>
+    </div>
+
+    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+      <a href="{{ url_for('auth.dashboard') }}" class="btn" style="background: #ffffff; color: var(--text-main); border: 1px solid var(--border-color); font-weight: 600; font-size: 0.9rem; padding: 0.65rem 1.15rem;">
+        Back to Dashboard
+      </a>
+      <a href="{{ url_for('auth.logout') }}" class="btn" style="background: #f1f5f9; color: var(--text-main); font-size: 0.9rem; padding: 0.65rem 1.15rem;">
+        Log Out
+      </a>
+    </div>
+  </div>
+
+  <!-- Operational KPI Metric Cards -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem;">
+    
+    <!-- Total Equipment -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.35rem; box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.35rem;">Total Equipment</div>
+        <div style="font-size: 2rem; font-weight: 800; color: var(--text-main); line-height: 1;">{{ total_equipment }}</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem;">Registered in system</div>
+      </div>
+      <div style="width: 44px; height: 44px; border-radius: 10px; background: #f1f5f9; color: #475569; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 700;">
+        EQ
+      </div>
+    </div>
+
+    <!-- Available Equipment -->
+    <div style="background: var(--card-bg); border: 1px solid #a7f3d0; border-radius: var(--radius-md); padding: 1.35rem; box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div style="font-size: 0.82rem; font-weight: 700; color: #065f46; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.35rem;">Available Items</div>
+        <div style="font-size: 2rem; font-weight: 800; color: #047857; line-height: 1;">{{ available_equipment }}</div>
+        <div style="font-size: 0.8rem; color: #059669; margin-top: 0.35rem;">Ready for booking</div>
+      </div>
+      <div style="width: 44px; height: 44px; border-radius: 10px; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 700;">
+        &check;
+      </div>
+    </div>
+
+    <!-- Out of Service -->
+    <div style="background: var(--card-bg); border: 1px solid #fecaca; border-radius: var(--radius-md); padding: 1.35rem; box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div style="font-size: 0.82rem; font-weight: 700; color: #991b1b; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.35rem;">Out of Service</div>
+        <div style="font-size: 2rem; font-weight: 800; color: #dc2626; line-height: 1;">{{ out_of_service_equipment }}</div>
+        <div style="font-size: 0.8rem; color: #b91c1c; margin-top: 0.35rem;">Maintenance / offline</div>
+      </div>
+      <div style="width: 44px; height: 44px; border-radius: 10px; background: #fef2f2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 700;">
+        &excl;
+      </div>
+    </div>
+
+    <!-- Pending Requests -->
+    <div style="background: var(--card-bg); border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 1.35rem; box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div style="font-size: 0.82rem; font-weight: 700; color: #1e40af; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.35rem;">Pending Requests</div>
+        <div style="font-size: 2rem; font-weight: 800; color: #2563eb; line-height: 1;">{{ pending_bookings_count }}</div>
+        <div style="font-size: 0.8rem; color: #3b82f6; margin-top: 0.35rem;">Awaiting staff review</div>
+      </div>
+      <div style="width: 44px; height: 44px; border-radius: 10px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 700;">
+        &bull;
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Operational Modules Grid -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.5rem;">
+    
+    <!-- Module 1: Lab Equipment Management -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.75rem; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin: 0;">
+            Lab Equipment Management
+          </h2>
+          <span style="background: #eff6ff; color: #1e40af; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 4px; border: 1px solid #bfdbfe;">
+            FR-01
+          </span>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.5; margin-bottom: 1.2rem;">
+          Add, configure, and maintain laboratory instruments and experimental kits. Control whether items are available or out of service for repair.
+        </p>
+
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.9rem 1rem; margin-bottom: 1.5rem;">
+          <h3 style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-main); margin-bottom: 0.4rem;">Staff Permissions</h3>
+          <ul style="padding-left: 1.25rem; color: var(--text-muted); font-size: 0.88rem; line-height: 1.6;">
+            <li>Add, edit, and delete equipment (FR-01)</li>
+            <li>Assign categories and technical descriptions</li>
+            <li>Toggle equipment availability status</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <a href="{{ url_for('equipment.add_equipment') }}" id="staff-add-equipment-btn" class="btn btn-primary" style="padding: 0.75rem 1.25rem; font-size: 0.92rem; font-weight: 600;">
+          + Add Lab Equipment
+        </a>
+        <a href="{{ url_for('equipment.list_equipment') }}" id="staff-view-catalogue-btn" class="btn" style="background: #ffffff; color: var(--text-main); border: 1px solid var(--border-color); font-weight: 600; padding: 0.75rem 1.25rem; font-size: 0.92rem;">
+          View Equipment Catalogue
+        </a>
+      </div>
+    </div>
+
+    <!-- Module 2: Booking Approvals & Requests -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.75rem; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin: 0;">
+            Booking Requests & Approvals
+          </h2>
+          <span style="background: #fef3c7; color: #92400e; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 4px; border: 1px solid #fde68a;">
+            FR-04
+          </span>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.5; margin-bottom: 1.2rem;">
+          Review reservation applications submitted by students. Inspect requested time windows, detect schedule conflicts, and approve or reject with reasons.
+        </p>
+
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.9rem 1rem; margin-bottom: 1.5rem;">
+          <h3 style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-main); margin-bottom: 0.4rem;">Staff Responsibilities</h3>
+          <ul style="padding-left: 1.25rem; color: var(--text-muted); font-size: 0.88rem; line-height: 1.6;">
+            <li>Review and approve or reject booking requests (FR-04)</li>
+            <li>Enforce maximum 4-hour reservation policy</li>
+            <li>Provide documented rejection reasons for students</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <a href="{{ url_for('bookings.pending_bookings') }}" id="staff-pending-bookings-btn" class="btn" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-weight: 600; padding: 0.75rem 1.25rem; font-size: 0.92rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+          View Pending Bookings
+          {% if pending_bookings_count > 0 %}
+            <span style="background: #2563eb; color: #ffffff; padding: 0.15rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700;">
+              {{ pending_bookings_count }}
+            </span>
+          {% endif %}
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Recent Equipment Inventory Section -->
+  <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.75rem; box-shadow: var(--shadow-sm);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+      <div>
+        <h2 style="font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin: 0;">
+          Recent Laboratory Equipment
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.88rem; margin-top: 0.2rem;">
+          Quick view of recently added or modified lab equipment items.
+        </p>
+      </div>
+      <a href="{{ url_for('equipment.add_equipment') }}" class="btn btn-primary" style="padding: 0.55rem 1rem; font-size: 0.88rem;">
+        + Add Lab Equipment
+      </a>
+    </div>
+
+    {% if recent_equipment %}
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+          <thead>
+            <tr style="border-bottom: 2px solid var(--border-color); background: #f8fafc;">
+              <th style="padding: 0.75rem 1rem; font-weight: 600; color: var(--text-muted);">Name</th>
+              <th style="padding: 0.75rem 1rem; font-weight: 600; color: var(--text-muted);">Category</th>
+              <th style="padding: 0.75rem 1rem; font-weight: 600; color: var(--text-muted);">Status</th>
+              <th style="padding: 0.75rem 1rem; font-weight: 600; color: var(--text-muted); text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in recent_equipment %}
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.85rem 1rem; font-weight: 600; color: var(--text-main);">{{ item.name }}</td>
+                <td style="padding: 0.85rem 1rem; color: var(--text-muted);">{{ item.category }}</td>
+                <td style="padding: 0.85rem 1rem;">
+                  {% if item.status == 'Available' %}
+                    <span style="background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; font-size: 0.78rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 9999px;">
+                      Available
+                    </span>
+                  {% else %}
+                    <span style="background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; font-size: 0.78rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 9999px;">
+                      {{ item.status }}
+                    </span>
+                  {% endif %}
+                </td>
+                <td style="padding: 0.85rem 1rem; text-align: right;">
+                  <a href="{{ url_for('equipment.edit_equipment', equipment_id=item.id) }}" style="color: var(--primary-color); font-weight: 600; text-decoration: none; margin-right: 0.75rem;">
+                    Edit
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div style="text-align: center; padding: 2.5rem 1rem; background: #f8fafc; border: 1px dashed var(--border-color); border-radius: var(--radius-md);">
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 0.75rem;">No laboratory equipment registered in the system yet.</p>
+        <a href="{{ url_for('equipment.add_equipment') }}" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem;">
+          + Add First Equipment Item
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

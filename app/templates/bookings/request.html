@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Request Equipment Booking - Lab Equipment Booking System{% endblock %}
+
+{% block content %}
+<section class="booking-page" aria-labelledby="booking-page-title">
+  <div class="booking-card">
+    <header class="booking-card-header">
+      <div class="booking-labels">
+        <span class="booking-feature-label">Booking request</span>
+        <span class="booking-status-label">Initial status: Pending</span>
+      </div>
+      <h1 id="booking-page-title">Request equipment booking</h1>
+      <p>
+        Choose an available item and a reservation window. Your request will be reviewed by laboratory staff.
+      </p>
+    </header>
+
+    <form method="POST" action="{{ url_for('bookings.request_booking') }}" id="booking-request-form">
+      <div class="form-group booking-field">
+        <label for="equipment_id" class="form-label">
+          Equipment item <span class="required-marker" aria-hidden="true">*</span>
+        </label>
+        <select
+          id="equipment_id"
+          name="equipment_id"
+          class="form-control"
+          required
+          aria-describedby="equipment-help"
+        >
+          <option value="" disabled {% if not selected_equipment_id %}selected{% endif %}>
+            -- Choose laboratory equipment --
+          </option>
+          {% for equip in equipment_list %}
+            {% set is_bookable = equip.status == 'Available' %}
+            <option
+              value="{{ equip.id }}"
+              {% if (selected_equipment_id|string) == (equip.id|string) %}selected{% endif %}
+              {% if not is_bookable %}disabled{% endif %}
+            >
+              [{{ equip.category }}] {{ equip.name }}
+              {% if is_bookable %}
+                — Available
+              {% else %}
+                — {{ equip.status or 'Unavailable' }} (unavailable)
+              {% endif %}
+            </option>
+          {% endfor %}
+        </select>
+        <span id="equipment-help" class="form-hint">
+          Only available equipment can be requested. Items marked unavailable cannot be selected.
+        </span>
+      </div>
+
+      <div class="form-group booking-field">
+        <label for="booking_date" class="form-label">
+          Booking date <span class="required-marker" aria-hidden="true">*</span>
+        </label>
+        <input
+          type="date"
+          id="booking_date"
+          name="booking_date"
+          class="form-control"
+          min="{{ min_date }}"
+          value="{{ booking_date if booking_date is defined and booking_date is not none else min_date }}"
+          required
+          aria-describedby="booking-date-help"
+        >
+        <span id="booking-date-help" class="form-hint">
+          Select today or a future date. Requests cannot start in the past.
+        </span>
+      </div>
+
+      <div class="booking-time-grid">
+        <div class="form-group booking-field">
+          <label for="start_time" class="form-label">
+            Start time <span class="required-marker" aria-hidden="true">*</span>
+          </label>
+          <input
+            type="time"
+            id="start_time"
+            name="start_time"
+            class="form-control"
+            value="{{ start_time if start_time is defined and start_time is not none else '09:00' }}"
+            required
+            aria-describedby="booking-duration-rules booking-duration-feedback"
+          >
+        </div>
+
+        <div class="form-group booking-field">
+          <label for="end_time" class="form-label">
+            End time <span class="required-marker" aria-hidden="true">*</span>
+          </label>
+          <input
+            type="time"
+            id="end_time"
+            name="end_time"
+            class="form-control"
+            value="{{ end_time if end_time is defined and end_time is not none else '11:00' }}"
+            required
+            aria-describedby="booking-duration-rules booking-duration-feedback"
+          >
+        </div>
+      </div>
+
+      <aside class="booking-rules" aria-labelledby="booking-rules-title">
+        <div class="booking-rules-icon" aria-hidden="true">i</div>
+        <div>
+          <h2 id="booking-rules-title">Booking time rules</h2>
+          <p id="booking-duration-rules">
+            Reservations must be between <strong>30 minutes</strong> and <strong>4 hours</strong>. The end time must be later than the start time.
+          </p>
+          <p id="booking-duration-feedback" class="booking-duration-feedback" aria-live="polite">
+            Choose a start and end time to view the booking duration.
+          </p>
+        </div>
+      </aside>
+
+      <aside class="booking-workflow" aria-labelledby="booking-workflow-title">
+        <h2 id="booking-workflow-title">Before you submit</h2>
+        <p>
+          The system checks equipment availability and conflicts with Pending or Approved bookings. Server-side validation protects every request, including when browser assistance is unavailable.
+        </p>
+      </aside>
+
+      <div class="booking-actions">
+        <button type="submit" id="submit-booking-btn" class="btn btn-primary">
+          Submit booking request
+        </button>
+        <a href="{{ url_for('bookings.my_bookings') }}" class="btn booking-secondary-action">
+          View my bookings
+        </a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_head %}
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("booking-request-form");
+    const startTime = document.getElementById("start_time");
+    const endTime = document.getElementById("end_time");
+    const feedback = document.getElementById("booking-duration-feedback");
+
+    if (!form || !startTime || !endTime || !feedback) {
+      return;
+    }
+
+    const timeToMinutes = (value) => {
+      const [hours, minutes] = value.split(":").map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const updateDurationFeedback = () => {
+      endTime.setCustomValidity("");
+      feedback.className = "booking-duration-feedback";
+
+      if (!startTime.value || !endTime.value) {
+        feedback.textContent = "Choose a start and end time to view the booking duration.";
+        return;
+      }
+
+      const durationMinutes = timeToMinutes(endTime.value) - timeToMinutes(startTime.value);
+      let message = "";
+
+      if (durationMinutes <= 0) {
+        message = "End time must be later than start time.";
+      } else if (durationMinutes < 30) {
+        message = "Booking duration must be at least 30 minutes.";
+      } else if (durationMinutes > 240) {
+        message = "Booking duration cannot exceed 4 hours.";
+      }
+
+      if (message) {
+        endTime.setCustomValidity(message);
+        feedback.textContent = message;
+        feedback.classList.add("is-error");
+        return;
+      }
+
+      const hours = Math.floor(durationMinutes / 60);
+      const minutes = durationMinutes % 60;
+      const durationLabel = hours ? `${hours} hour${hours === 1 ? "" : "s"}` : "";
+      const minuteLabel = minutes ? `${minutes} minute${minutes === 1 ? "" : "s"}` : "";
+      feedback.textContent = `Selected duration: ${[durationLabel, minuteLabel].filter(Boolean).join(" ")}.`;
+      feedback.classList.add("is-valid");
+    };
+
+    startTime.addEventListener("input", updateDurationFeedback);
+    endTime.addEventListener("input", updateDurationFeedback);
+    form.addEventListener("submit", updateDurationFeedback);
+    updateDurationFeedback();
+  });
+</script>
+{% endblock %}

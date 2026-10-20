@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Lab Equipment Booking System{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="{{ url_for('home') }}" class="brand-link">
+        <span class="brand-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/>
+            <path d="M8.5 2h7"/>
+            <path d="M7 16h10"/>
+          </svg>
+        </span>
+        <span class="brand-title">Lab Equipment Booking</span>
+      </a>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="{{ url_for('home') }}">Home</a></li>
+          {% if current_user and current_user.is_authenticated %}
+            <li><a href="{{ url_for('equipment.list_equipment') }}" id="nav-catalogue-link">Equipment Catalogue</a></li>
+            <li><a href="{{ url_for('equipment.list_equipment') }}" id="nav-equipment-link">Equipment</a></li>
+            <li><a href="{{ url_for('bookings.request_booking') }}" id="nav-book-link">Book Equipment</a></li>
+            <li><a href="{{ url_for('bookings.my_bookings') }}" id="nav-my-bookings-link">My Bookings</a></li>
+            {% if current_user.is_staff %}
+              <li><a href="{{ url_for('equipment.add_equipment') }}" id="nav-add-equipment-link" style="color: #2563eb; font-weight: 600;">+ Add Equipment</a></li>
+              <li><a href="{{ url_for('auth.staff_dashboard') }}" id="nav-staff-dashboard-link">Staff Console</a></li>
+            {% endif %}
+            <li>
+              <a href="{{ url_for('auth.dashboard') }}" class="nav-dashboard-link">
+                Dashboard ({{ current_user.username }})
+                <span class="nav-role-badge">
+                  {{ current_user.role }}
+                </span>
+              </a>
+            </li>
+            <li><a href="{{ url_for('auth.logout') }}" id="logout-link">Log Out</a></li>
+          {% else %}
+            <li><a href="{{ url_for('auth.login') }}" class="nav-link-login">Log In</a></li>
+            <li><a href="{{ url_for('auth.register') }}" class="btn-nav-register">Student Register</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category if category != 'error' else 'danger' }}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-left">
+        <span class="status-indicator-dot">●</span>
+        <span>Laboratory Management System &bull; CIF</span>
+      </div>
+      <div class="footer-right">
+        <a href="#">Safety Protocols</a>
+        <a href="#">Terms of Use</a>
+        <a href="#">Help Desk</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

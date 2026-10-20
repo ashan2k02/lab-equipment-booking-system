@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Lab Equipment Booking System{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper" style="max-width: 680px; margin: 0 auto; width: 100%;">
+  <div class="auth-card" style="max-width: 680px; width: 100%;">
+    <div class="auth-header" style="text-align: left; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+        <span class="nav-role-badge">Staff Console</span>
+        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">FR-01 Equipment Management</span>
+      </div>
+      <h1 id="equipment-form-title" style="font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin: 0;">{{ title }}</h1>
+      <p style="color: var(--text-muted); font-size: 0.92rem; margin-top: 0.25rem;">
+        {% if title == "Add Equipment" %}
+          Fill in the details below to add a new lab equipment item to the catalogue.
+        {% else %}
+          Update the laboratory equipment item details and availability status.
+        {% endif %}
+      </p>
+    </div>
+
+    <form method="POST" id="equipment-form">
+      <div class="form-group">
+        <label for="name" class="form-label">
+          Equipment Name <span style="color: #dc2626;" aria-hidden="true">*</span>
+        </label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          class="form-control"
+          placeholder="e.g. Digital Storage Oscilloscope"
+          value="{{ values.get('name', '') }}"
+          maxlength="100"
+          required
+        >
+        <span class="form-hint">Mandatory. Between 1 and 100 characters.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="category" class="form-label">
+          Category <span style="color: #dc2626;" aria-hidden="true">*</span>
+        </label>
+        <input
+          type="text"
+          id="category"
+          name="category"
+          class="form-control"
+          placeholder="e.g. Measurement, Microcontrollers, Optics"
+          value="{{ values.get('category', '') }}"
+          maxlength="50"
+          required
+        >
+        <span class="form-hint">Mandatory. Category for catalogue classification (max 50 chars).</span>
+      </div>
+
+      <div class="form-group">
+        <label for="description" class="form-label">Description</label>
+        <textarea
+          id="description"
+          name="description"
+          class="form-control"
+          rows="3"
+          placeholder="Technical specifications, model number, lab bench location, safety notices..."
+          maxlength="250"
+        >{{ values.get('description', '') }}</textarea>
+        <span class="form-hint">Optional. Brief details up to 250 characters.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="status" class="form-label">
+          Equipment Status <span style="color: #dc2626;" aria-hidden="true">*</span>
+        </label>
+        <select id="status" name="status" class="form-control" required>
+          {% for s in statuses %}
+            <option value="{{ s }}" {% if values.get('status') == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <span class="form-hint">Available items can be booked by students. Out of service items cannot be booked.</span>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; margin-top: 1.75rem; flex-wrap: wrap;">
+        <button type="submit" id="submit-equipment-btn" class="btn btn-primary" style="flex: 1; min-width: 160px;">
+          Save
+        </button>
+        <a href="{{ url_for('auth.staff_dashboard') }}" id="back-dashboard-btn" class="btn" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-weight: 600;">
+          Back to Dashboard
+        </a>
+        <a href="{{ url_for('equipment.list_equipment') }}" id="cancel-equipment-btn" class="btn" style="background: #f1f5f9; color: var(--text-main); border: 1px solid var(--border-color);">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
