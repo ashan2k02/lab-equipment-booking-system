@@ -60,6 +60,7 @@ def sample_data(app):
 
 
 def login(client, username):
+    client.get("/logout", follow_redirects=True)
     return client.post(
         "/login",
         data={"username": username, "password": "password123"},
@@ -133,3 +134,139 @@ def test_staff_dashboard_links_to_pending_bookings(client, sample_data):
     assert response.status_code == 200
     assert b'href="/bookings/pending"' in response.data
     assert b"View Pending Bookings" in response.data
+
+
+def test_staff_can_accept_pending_booking(app, client, sample_data):
+    with app.app_context():
+        booking = create_booking(db.session, sample_data, Booking.STATUS_PENDING)
+        booking_id = booking.id
+
+    login(client, "pending_staff")
+    response = client.post(f"/bookings/{booking_id}/accept", follow_redirects=True)
+
+    assert response.status_code == 200
+    assert b"accepted successfully" in response.data
+
+    with app.app_context():
+        updated = db.session.get(Booking, booking_id)
+        assert updated.status == Booking.STATUS_APPROVED
+
+
+def test_staff_cannot_accept_overlapping_approved_booking(app, client, sample_data):
+    with app.app_context():
+        # Approved booking 10:00 - 12:00
+        approved = create_booking(db.session, sample_data, Booking.STATUS_APPROVED)
+        # Pending booking 11:00 - 13:00 on the same date and equipment
+        pending = Booking(
+            user_id=sample_data["student_id"],
+            equipment_id=sample_data["equipment_id"],
+            booking_date=approved.booking_date,
+            start_time="11:00",
+            end_time="13:00",
+            status=Booking.STATUS_PENDING,
+        )
+        db.session.add(pending)
+        db.session.commit()
+        pending_id = pending.id
+
+    login(client, "pending_staff")
+    response = client.post(f"/bookings/{pending_id}/accept", follow_redirects=True)
+
+    assert response.status_code == 200
+    assert b"already has an approved booking during that time window" in response.data
+
+    with app.app_context():
+        unchanged = db.session.get(Booking, pending_id)
+        assert unchanged.status == Booking.STATUS_PENDING
+
+
+def test_staff_cannot_accept_out_of_service_equipment(app, client, sample_data):
+    with app.app_context():
+        equip = db.session.get(Equipment, sample_data["equipment_id"])
+        equip.status = Equipment.STATUS_OUT_OF_SERVICE
+        booking = create_booking(db.session, sample_data, Booking.STATUS_PENDING)
+        booking_id = booking.id
+        db.session.commit()
+
+    login(client, "pending_staff")
+    response = client.post(f"/bookings/{booking_id}/accept", follow_redirects=True)
+
+    assert response.status_code == 200
+    assert b"currently marked Out of service" in response.data
+
+    with app.app_context():
+        unchanged = db.session.get(Booking, booking_id)
+        assert unchanged.status == Booking.STATUS_PENDING
+
+
+def test_staff_can_reject_pending_booking_with_reason(app, client, sample_data):
+    with app.app_context():
+        booking = create_booking(db.session, sample_data, Booking.STATUS_PENDING)
+        booking_id = booking.id
+
+    login(client, "pending_staff")
+    response = client.post(
+        f"/bookings/{booking_id}/reject",
+        data={"rejection_reason": "Maintenance scheduled for this device."},
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert b"has been declined" in response.data
+
+    with app.app_context():
+        updated = db.session.get(Booking, booking_id)
+        assert updated.status == Booking.STATUS_REJECTED
+        assert updated.rejection_reason == "Maintenance scheduled for this device."
+
+
+def test_student_and_anonymous_cannot_accept_or_reject(app, client, sample_data):
+    with app.app_context():
+        booking = create_booking(db.session, sample_data, Booking.STATUS_PENDING)
+        booking_id = booking.id
+
+    # Anonymous user
+    res_anon_accept = client.post(f"/bookings/{booking_id}/accept")
+    assert res_anon_accept.status_code == 302
+    assert "/login" in res_anon_accept.headers["Location"]
+
+    res_anon_reject = client.post(f"/bookings/{booking_id}/reject")
+    assert res_anon_reject.status_code == 302
+    assert "/login" in res_anon_reject.headers["Location"]
+
+    # Student user
+    login(client, "pending_student")
+    res_student_accept = client.post(f"/bookings/{booking_id}/accept")
+    assert res_student_accept.status_code == 403
+
+    res_student_reject = client.post(f"/bookings/{booking_id}/reject")
+    assert res_student_reject.status_code == 403
+
+    with app.app_context():
+        unchanged = db.session.get(Booking, booking_id)
+        assert unchanged.status == Booking.STATUS_PENDING
+
+
+def test_accept_reject_404_for_nonexistent_booking(client, sample_data):
+    login(client, "pending_staff")
+    assert client.post("/bookings/99999/accept").status_code == 404
+    assert client.post("/bookings/99999/reject").status_code == 404
+
+
+def test_booking_detail_page_staff_review_actions(app, client, sample_data):
+    with app.app_context():
+        booking = create_booking(db.session, sample_data, Booking.STATUS_PENDING)
+        booking_id = booking.id
+
+    # Staff views detail: should see Staff Action Required
+    login(client, "pending_staff")
+    res_staff = client.get(f"/bookings/{booking_id}")
+    assert res_staff.status_code == 200
+    assert b"Staff Action Required" in res_staff.data
+    assert b"Accept Booking" in res_staff.data
+
+    # Student views detail: should NOT see Staff Action Required
+    login(client, "pending_student")
+    res_student = client.get(f"/bookings/{booking_id}")
+    assert res_student.status_code == 200
+    assert b"Staff Action Required" not in res_student.data

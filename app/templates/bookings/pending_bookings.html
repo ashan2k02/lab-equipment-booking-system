@@ -24,6 +24,7 @@
               <th style="padding: 1rem 1.25rem;">Date</th>
               <th style="padding: 1rem 1.25rem;">Time Window</th>
               <th style="padding: 1rem 1.25rem;">Status</th>
+              <th style="padding: 1rem 1.25rem; text-align: right;">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -53,6 +54,38 @@
                     <span style="width: 6px; height: 6px; border-radius: 50%; background: #d97706;"></span>
                     {{ booking.status }}
                   </span>
+                </td>
+                <td style="padding: 1.1rem 1.25rem; text-align: right;">
+                  <div style="display: inline-flex; align-items: center; gap: 0.5rem; justify-content: flex-end;">
+                    <form method="POST" action="{{ url_for('bookings.accept_booking', booking_id=booking.id) }}" style="display: inline; margin: 0;">
+                      <button
+                        type="submit"
+                        onclick="return confirm('Accept this booking request?');"
+                        style="background: #16a34a; color: #ffffff; border: none; padding: 0.45rem 0.85rem; border-radius: 6px; font-weight: 600; font-size: 0.82rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem;"
+                        title="Accept Request"
+                      >
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        Accept
+                      </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('bookings.reject_booking', booking_id=booking.id) }}" style="display: inline; margin: 0;">
+                      <button
+                        type="submit"
+                        onclick="return confirm('Decline this booking request?');"
+                        style="background: #ffffff; color: #dc2626; border: 1px solid #fca5a5; padding: 0.45rem 0.85rem; border-radius: 6px; font-weight: 600; font-size: 0.82rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem;"
+                        title="Decline Request"
+                      >
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        Decline
+                      </button>
+                    </form>
+                    <a
+                      href="{{ url_for('bookings.booking_detail', booking_id=booking.id) }}"
+                      style="color: var(--primary-color); text-decoration: none; font-weight: 600; font-size: 0.82rem; padding: 0.45rem 0.65rem; border-radius: 6px; border: 1px solid var(--border-color); background: #f8fafc;"
+                    >
+                      View
+                    </a>
+                  </div>
                 </td>
               </tr>
             {% endfor %}
