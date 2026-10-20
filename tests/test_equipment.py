@@ -452,20 +452,28 @@ def test_navbar_equipment_links(client):
     assert 'id="nav-add-equipment-link"' not in html_anon
     assert 'id="nav-catalogue-link"' not in html_anon
 
-    # Student user sees Equipment Catalogue, but does not see Add Equipment link
+    # Student user sees Equipment Catalogue and Booking links, but not staff links
     login_student(client)
     res_student = client.get("/equipment/")
     assert res_student.status_code == 200
     html_student = res_student.get_data(as_text=True)
     assert 'id="nav-catalogue-link"' in html_student
+    assert 'id="nav-book-link"' in html_student
+    assert 'id="nav-my-bookings-link"' in html_student
     assert 'id="nav-add-equipment-link"' not in html_student
+    assert 'id="nav-pending-bookings-link"' not in html_student
+    assert 'id="nav-staff-dashboard-link"' not in html_student
     client.get("/logout")
 
-    # Staff user sees both Equipment Catalogue and Add Equipment links
+    # Staff user sees Equipment Catalogue, Add Equipment, Pending Bookings, but NOT Book/My Bookings
     login_staff(client)
     res_staff = client.get("/equipment/")
     assert res_staff.status_code == 200
     html_staff = res_staff.get_data(as_text=True)
     assert 'id="nav-catalogue-link"' in html_staff
     assert 'id="nav-add-equipment-link"' in html_staff
+    assert 'id="nav-pending-bookings-link"' in html_staff
+    assert 'id="nav-staff-dashboard-link"' in html_staff
     assert "Add Equipment" in html_staff
+    assert 'id="nav-book-link"' not in html_staff
+    assert 'id="nav-my-bookings-link"' not in html_staff
