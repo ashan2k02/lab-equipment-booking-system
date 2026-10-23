@@ -4,7 +4,7 @@
 
 This guide records the automated testing approach for the Lab Equipment Booking System, with emphasis on FR-03 booking validation. The booking-request tests exercise validation before a `Booking` is added to the database and verify both accepted and rejected HTTP flows.
 
-The main FR-03 tests are in `tests/test_booking_request.py`. Integration coverage for booking submission, required fields, initial Pending status, and authentication is in `tests/test_booking_integration.py`.
+The main FR-03 tests are in `tests/test_booking_request.py`. Integration coverage for booking submission, required fields, initial Pending status, and authentication is in `tests/test_booking_integration.py`. FR-04 approval, rejection, persistence, authorization, and invalid-action coverage is in `tests/test_pending_bookings.py`.
 
 ## 2. Testing tools and environment
 
@@ -55,6 +55,9 @@ git diff --check
 - Duration must be at least 30 minutes and no more than 4 hours, inclusive.
 - A new request conflicts when the same equipment and date have a Pending or Approved booking where `existing.start_time < requested.end_time` and `existing.end_time > requested.start_time`.
 - All new valid requests are saved with status `Pending`.
+- Staff approval rechecks the existing equipment, date/time, duration, and Pending/Approved overlap rules before saving `Approved`.
+- Staff rejection saves `Rejected` and an optional reason of up to 255 characters.
+- Approval and rejection actions accept only bookings that are currently `Pending`.
 
 ## 6. Equivalence Partitioning
 
@@ -109,18 +112,22 @@ All failed booking validation paths return HTTP 400, flash a user-facing error, 
 
 Tests cover missing fields, malformed date/time values, invalid equipment IDs/statuses, past dates/times, time ordering, duration limits, and booking conflicts. Rejection tests assert no invalid `Booking` record is persisted. The form re-rendering test also checks that the session has no pending or dirty objects after a rejected request.
 
-## 11. Test execution results
+## 11. FR-04 booking approval and rejection tests
 
-Latest verified execution result for the current FR-03 implementation:
+The FR-04 tests verify that staff can approve and reject Pending bookings, status changes persist, rejection reasons are stored, invalid booking IDs return 404, repeated actions do not overwrite a non-Pending booking, approval rechecks overlapping bookings, students and anonymous users cannot execute staff actions, and students can see persisted statuses in My Bookings.
+
+## 12. Test execution results
+
+Latest verified execution result for the current FR-04 implementation:
 
 ```text
-142 passed, 1 warning
+164 passed, 4 warnings
 ```
 
-Ruff completed with `All checks passed!`, and `git diff --check` completed without whitespace errors.
+Coverage completed at 97% overall. Ruff completed with `All checks passed!`, and `git diff --check` completed without whitespace errors.
 
-## 12. Known warnings or limitations
+## 13. Known warnings or limitations
 
-- The test run emits one Flask-Login deprecation warning because its dependency uses `datetime.utcnow()`. This warning is outside the booking-validation implementation.
+- The test run emits a Flask-Login deprecation warning because its dependency uses `datetime.utcnow()`, plus SQLite resource warnings during test cleanup. These warnings are outside the FR-04 implementation.
 - Overlap prevention is application-level. The tests verify normal request behavior, but no database-level constraint prevents a theoretical race between simultaneous overlapping requests.
 - The documented test suite covers the listed equivalence classes and boundaries; it does not claim exhaustive coverage of every possible input or concurrent execution path.
