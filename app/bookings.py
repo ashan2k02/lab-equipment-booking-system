@@ -243,58 +243,6 @@ def pending_bookings():
     )
 
 
-@bookings_bp.route("/<int:booking_id>/approve", methods=["POST"])
-@staff_required
-def approve_booking(booking_id: int):
-    """Approve a pending booking after rechecking its booking constraints."""
-    booking = db.session.get(Booking, booking_id)
-    if not booking:
-        abort(404)
-
-    if not booking.is_pending:
-        flash("Only Pending bookings can be approved.", "error")
-        return redirect(url_for("bookings.pending_bookings"))
-
-    is_valid, error_msg, _ = validate_booking_input(
-        equipment_id_raw=str(booking.equipment_id),
-        booking_date_raw=booking.booking_date.isoformat(),
-        start_time_raw=booking.start_time.isoformat(),
-        end_time_raw=booking.end_time.isoformat(),
-        exclude_booking_id=booking.id,
-    )
-    if not is_valid:
-        flash(f"Booking cannot be approved: {error_msg}", "error")
-        return redirect(url_for("bookings.pending_bookings"))
-
-    booking.status = Booking.STATUS_APPROVED
-    booking.rejection_reason = None
-    db.session.commit()
-    flash("Booking approved successfully.", "success")
-    return redirect(url_for("bookings.pending_bookings"))
-
-
-@bookings_bp.route("/<int:booking_id>/reject", methods=["POST"])
-@staff_required
-def reject_booking(booking_id: int):
-    """Reject a pending booking and optionally store a staff reason."""
-    booking = db.session.get(Booking, booking_id)
-    if not booking:
-        abort(404)
-
-    if not booking.is_pending:
-        flash("Only Pending bookings can be rejected.", "error")
-        return redirect(url_for("bookings.pending_bookings"))
-
-    rejection_reason = request.form.get("rejection_reason", "").strip()
-    if len(rejection_reason) > 255:
-        flash("Rejection reason must be 255 characters or fewer.", "error")
-        return redirect(url_for("bookings.pending_bookings"))
-
-    booking.status = Booking.STATUS_REJECTED
-    booking.rejection_reason = rejection_reason or None
-    db.session.commit()
-    flash("Booking rejected successfully.", "success")
-    return redirect(url_for("bookings.pending_bookings"))
 
 
 @bookings_bp.route("/<int:booking_id>")

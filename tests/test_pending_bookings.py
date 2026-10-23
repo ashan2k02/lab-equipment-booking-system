@@ -137,9 +137,6 @@ def test_staff_dashboard_links_to_pending_bookings(client, sample_data):
 
 
 def test_staff_can_accept_pending_booking(app, client, sample_data):
-def test_staff_can_approve_pending_booking_and_status_is_persisted(
-    app, client, sample_data
-):
     with app.app_context():
         booking = create_booking(db.session, sample_data, Booking.STATUS_PENDING)
         booking_id = booking.id
@@ -153,6 +150,24 @@ def test_staff_can_approve_pending_booking_and_status_is_persisted(
     with app.app_context():
         updated = db.session.get(Booking, booking_id)
         assert updated.status == Booking.STATUS_APPROVED
+
+
+def test_staff_can_approve_pending_booking_and_status_is_persisted(
+    app, client, sample_data
+):
+    with app.app_context():
+        booking = create_booking(db.session, sample_data, Booking.STATUS_PENDING)
+        booking_id = booking.id
+
+    login(client, "pending_staff")
+    response = client.post(f"/bookings/{booking_id}/approve", follow_redirects=True)
+
+    assert response.status_code == 200
+    assert b"accepted successfully" in response.data
+    with app.app_context():
+        saved_booking = db.session.get(Booking, booking_id)
+        assert saved_booking.status == Booking.STATUS_APPROVED
+        assert saved_booking.rejection_reason is None
 
 
 def test_staff_cannot_accept_overlapping_approved_booking(app, client, sample_data):
@@ -183,6 +198,30 @@ def test_staff_cannot_accept_overlapping_approved_booking(app, client, sample_da
         assert unchanged.status == Booking.STATUS_PENDING
 
 
+def test_approval_rechecks_overlapping_bookings(app, client, sample_data):
+    with app.app_context():
+        pending_booking = create_booking(db.session, sample_data, Booking.STATUS_PENDING)
+        competing_booking = Booking(
+            user_id=sample_data["student_id"],
+            equipment_id=sample_data["equipment_id"],
+            booking_date=pending_booking.booking_date,
+            start_time="11:00",
+            end_time="13:00",
+            status=Booking.STATUS_APPROVED,
+        )
+        db.session.add(competing_booking)
+        db.session.commit()
+        booking_id = pending_booking.id
+
+    login(client, "pending_staff")
+    response = client.post(f"/bookings/{booking_id}/approve", follow_redirects=True)
+
+    assert response.status_code == 200
+    assert b"already has an approved booking during that time window" in response.data
+    with app.app_context():
+        assert db.session.get(Booking, booking_id).status == Booking.STATUS_PENDING
+
+
 def test_staff_cannot_accept_out_of_service_equipment(app, client, sample_data):
     with app.app_context():
         equip = db.session.get(Equipment, sample_data["equipment_id"])
@@ -203,70 +242,6 @@ def test_staff_cannot_accept_out_of_service_equipment(app, client, sample_data):
 
 
 def test_staff_can_reject_pending_booking_with_reason(app, client, sample_data):
-    response = client.post(f"/bookings/{booking_id}/approve", follow_redirects=True)
-
-    assert response.status_code == 200
-    assert b"Booking approved successfully" in response.data
-    with app.app_context():
-        saved_booking = db.session.get(Booking, booking_id)
-        assert saved_booking.status == Booking.STATUS_APPROVED
-        assert saved_booking.rejection_reason is None
-
-
-def test_staff_can_reject_pending_booking_with_optional_reason(
-    app, client, sample_data
-):
-    with app.app_context():
-        booking = create_booking(db.session, sample_data, Booking.STATUS_PENDING)
-        booking_id = booking.id
-
-    login(client, "pending_staff")
-    response = client.post(
-        f"/bookings/{booking_id}/reject",
-        data={"rejection_reason": "Equipment reserved for maintenance."},
-        follow_redirects=True,
-    )
-
-    assert response.status_code == 200
-    assert b"Booking rejected successfully" in response.data
-    with app.app_context():
-        saved_booking = db.session.get(Booking, booking_id)
-        assert saved_booking.status == Booking.STATUS_REJECTED
-        assert saved_booking.rejection_reason == "Equipment reserved for maintenance."
-
-
-def test_approval_rechecks_overlapping_bookings(app, client, sample_data):
-    with app.app_context():
-        pending_booking = create_booking(db.session, sample_data, Booking.STATUS_PENDING)
-        competing_booking = Booking(
-            user_id=sample_data["student_id"],
-            equipment_id=sample_data["equipment_id"],
-            booking_date=pending_booking.booking_date,
-            start_time="11:00",
-            end_time="13:00",
-            status=Booking.STATUS_APPROVED,
-        )
-        db.session.add(competing_booking)
-        db.session.commit()
-        booking_id = pending_booking.id
-
-    login(client, "pending_staff")
-    response = client.post(f"/bookings/{booking_id}/approve", follow_redirects=True)
-
-    assert response.status_code == 200
-    assert b"Booking cannot be approved" in response.data
-    with app.app_context():
-        assert db.session.get(Booking, booking_id).status == Booking.STATUS_PENDING
-
-
-def test_booking_actions_return_not_found_for_invalid_ids(client, sample_data):
-    login(client, "pending_staff")
-
-    assert client.post("/bookings/99999/approve").status_code == 404
-    assert client.post("/bookings/99999/reject").status_code == 404
-
-
-def test_repeated_actions_do_not_change_a_non_pending_booking(app, client, sample_data):
     with app.app_context():
         booking = create_booking(db.session, sample_data, Booking.STATUS_PENDING)
         booking_id = booking.id
@@ -287,24 +262,56 @@ def test_repeated_actions_do_not_change_a_non_pending_booking(app, client, sampl
         assert updated.rejection_reason == "Maintenance scheduled for this device."
 
 
-def test_student_and_anonymous_cannot_accept_or_reject(app, client, sample_data):
-    assert client.post(f"/bookings/{booking_id}/approve").status_code == 302
-    repeated_response = client.post(
+def test_staff_can_reject_pending_booking_with_optional_reason(
+    app, client, sample_data
+):
+    with app.app_context():
+        booking = create_booking(db.session, sample_data, Booking.STATUS_PENDING)
+        booking_id = booking.id
+
+    login(client, "pending_staff")
+    response = client.post(
         f"/bookings/{booking_id}/reject",
-        data={"rejection_reason": "This must not overwrite Approved."},
+        data={"rejection_reason": "Equipment reserved for maintenance."},
         follow_redirects=True,
     )
 
-    assert repeated_response.status_code == 200
-    assert b"Only Pending bookings can be rejected" in repeated_response.data
+    assert response.status_code == 200
+    assert b"has been declined" in response.data
     with app.app_context():
         saved_booking = db.session.get(Booking, booking_id)
-        assert saved_booking.status == Booking.STATUS_APPROVED
-        assert saved_booking.rejection_reason is None
+        assert saved_booking.status == Booking.STATUS_REJECTED
+        assert saved_booking.rejection_reason == "Equipment reserved for maintenance."
 
 
-@pytest.mark.parametrize("action", ["approve", "reject"])
-def test_booking_actions_require_staff_access(app, client, sample_data, action):
+def test_repeated_actions_do_not_change_a_non_pending_booking(app, client, sample_data):
+    with app.app_context():
+        booking = create_booking(db.session, sample_data, Booking.STATUS_PENDING)
+        booking_id = booking.id
+
+    login(client, "pending_staff")
+    # First reject
+    client.post(
+        f"/bookings/{booking_id}/reject",
+        data={"rejection_reason": "Maintenance scheduled for this device."},
+        follow_redirects=True,
+    )
+
+    # Try to reject again
+    response = client.post(
+        f"/bookings/{booking_id}/reject",
+        data={"rejection_reason": "This must not overwrite the first reason."},
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    with app.app_context():
+        saved_booking = db.session.get(Booking, booking_id)
+        assert saved_booking.status == Booking.STATUS_REJECTED
+        assert saved_booking.rejection_reason == "Maintenance scheduled for this device."
+
+
+def test_student_and_anonymous_cannot_accept_or_reject(app, client, sample_data):
     with app.app_context():
         booking = create_booking(db.session, sample_data, Booking.STATUS_PENDING)
         booking_id = booking.id
@@ -331,9 +338,33 @@ def test_booking_actions_require_staff_access(app, client, sample_data, action):
         assert unchanged.status == Booking.STATUS_PENDING
 
 
+@pytest.mark.parametrize("action", ["approve", "reject"])
+def test_booking_actions_require_staff_access(app, client, sample_data, action):
+    with app.app_context():
+        booking = create_booking(db.session, sample_data, Booking.STATUS_PENDING)
+        booking_id = booking.id
+
+    anonymous_response = client.post(f"/bookings/{booking_id}/{action}")
+    assert anonymous_response.status_code == 302
+    assert "/login" in anonymous_response.headers["Location"]
+
+    login(client, "pending_student")
+    student_response = client.post(f"/bookings/{booking_id}/{action}")
+    assert student_response.status_code == 403
+
+    with app.app_context():
+        assert db.session.get(Booking, booking_id).status == Booking.STATUS_PENDING
+
+
 def test_accept_reject_404_for_nonexistent_booking(client, sample_data):
     login(client, "pending_staff")
     assert client.post("/bookings/99999/accept").status_code == 404
+    assert client.post("/bookings/99999/reject").status_code == 404
+
+
+def test_booking_actions_return_not_found_for_invalid_ids(client, sample_data):
+    login(client, "pending_staff")
+    assert client.post("/bookings/99999/approve").status_code == 404
     assert client.post("/bookings/99999/reject").status_code == 404
 
 
@@ -354,16 +385,6 @@ def test_booking_detail_page_staff_review_actions(app, client, sample_data):
     res_student = client.get(f"/bookings/{booking_id}")
     assert res_student.status_code == 200
     assert b"Staff Action Required" not in res_student.data
-    anonymous_response = client.post(f"/bookings/{booking_id}/{action}")
-    assert anonymous_response.status_code == 302
-    assert "/login" in anonymous_response.headers["Location"]
-
-    login(client, "pending_student")
-    student_response = client.post(f"/bookings/{booking_id}/{action}")
-    assert student_response.status_code == 403
-
-    with app.app_context():
-        assert db.session.get(Booking, booking_id).status == Booking.STATUS_PENDING
 
 
 def test_student_can_see_persisted_booking_status(app, client, sample_data):
