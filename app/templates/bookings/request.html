@@ -3,63 +3,58 @@
 {% block title %}Request Equipment Booking - Lab Equipment Booking System{% endblock %}
 
 {% block content %}
-<div class="auth-wrapper" style="max-width: 680px; margin: 0 auto; width: 100%;">
-  <div class="auth-card" style="max-width: 680px; width: 100%; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);">
-    <div class="auth-header" style="text-align: left; border-bottom: 1px solid var(--border-color); padding-bottom: 1.25rem; margin-bottom: 1.5rem;">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-        <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--primary-color); letter-spacing: 0.05em; background: #eff6ff; padding: 0.2rem 0.6rem; border-radius: 9999px; border: 1px solid #bfdbfe;">
-          FR-02 Booking Request
-        </span>
-        <span style="font-size: 0.82rem; font-weight: 600; color: #b45309; background: #fef3c7; padding: 0.2rem 0.65rem; border-radius: 9999px; border: 1px solid #fde68a;">
-          Initial Status: Pending
-        </span>
+<section class="booking-page" aria-labelledby="booking-page-title">
+  <div class="booking-card">
+    <header class="booking-card-header">
+      <div class="booking-labels">
+        <span class="booking-feature-label">Booking request</span>
+        <span class="booking-status-label">Initial status: Pending</span>
       </div>
-      <h1 style="font-size: 1.6rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.35rem;">Request Equipment Booking</h1>
-      <p style="color: var(--text-muted); font-size: 0.95rem;">
-        Select an equipment item from the lab inventory, specify your reservation date and time window.
+      <h1 id="booking-page-title">Request equipment booking</h1>
+      <p>
+        Choose an available item and a reservation window. Your request will be reviewed by laboratory staff.
       </p>
-    </div>
+    </header>
 
     <form method="POST" action="{{ url_for('bookings.request_booking') }}" id="booking-request-form">
-      <!-- Equipment Selection -->
-      <div class="form-group" style="margin-bottom: 1.35rem;">
-        <label for="equipment_id" class="form-label" style="font-weight: 600; display: block; margin-bottom: 0.45rem;">
-          Equipment Item <span style="color: #ef4444;">*</span>
+      <div class="form-group booking-field">
+        <label for="equipment_id" class="form-label">
+          Equipment item <span class="required-marker" aria-hidden="true">*</span>
         </label>
         <select
           id="equipment_id"
           name="equipment_id"
           class="form-control"
-          style="width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); background: #ffffff; font-size: 0.95rem; font-family: inherit;"
           required
+          aria-describedby="equipment-help"
         >
           <option value="" disabled {% if not selected_equipment_id %}selected{% endif %}>
             -- Choose laboratory equipment --
           </option>
           {% for equip in equipment_list %}
+            {% set is_bookable = equip.status == 'Available' %}
             <option
               value="{{ equip.id }}"
               {% if (selected_equipment_id|string) == (equip.id|string) %}selected{% endif %}
-              {% if equip.status == 'Out of service' %}disabled style="color: #94a3b8;"{% endif %}
+              {% if not is_bookable %}disabled{% endif %}
             >
               [{{ equip.category }}] {{ equip.name }}
-              {% if equip.status == 'Out of service' %}
-                (Out of service - Unavailable)
+              {% if is_bookable %}
+                — Available
               {% else %}
-                (Available)
+                — {{ equip.status or 'Unavailable' }} (unavailable)
               {% endif %}
             </option>
           {% endfor %}
         </select>
-        <small style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.3rem; display: block;">
-          Items marked "Out of service" cannot be booked.
-        </small>
+        <span id="equipment-help" class="form-hint">
+          Only available equipment can be requested. Items marked unavailable cannot be selected.
+        </span>
       </div>
 
-      <!-- Booking Date -->
-      <div class="form-group" style="margin-bottom: 1.35rem;">
-        <label for="booking_date" class="form-label" style="font-weight: 600; display: block; margin-bottom: 0.45rem;">
-          Booking Date <span style="color: #ef4444;">*</span>
+      <div class="form-group booking-field">
+        <label for="booking_date" class="form-label">
+          Booking date <span class="required-marker" aria-hidden="true">*</span>
         </label>
         <input
           type="date"
@@ -67,75 +62,136 @@
           name="booking_date"
           class="form-control"
           min="{{ min_date }}"
-          value="{{ booking_date or min_date }}"
-          style="width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.95rem; font-family: inherit;"
+          value="{{ booking_date if booking_date is defined and booking_date is not none else min_date }}"
           required
+          aria-describedby="booking-date-help"
         >
-        <small style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.3rem; display: block;">
-          Bookings cannot start in the past.
-        </small>
+        <span id="booking-date-help" class="form-hint">
+          Select today or a future date. Requests cannot start in the past.
+        </span>
       </div>
 
-      <!-- Start and End Time (Grid) -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem;">
-        <div class="form-group">
-          <label for="start_time" class="form-label" style="font-weight: 600; display: block; margin-bottom: 0.45rem;">
-            Start Time <span style="color: #ef4444;">*</span>
+      <div class="booking-time-grid">
+        <div class="form-group booking-field">
+          <label for="start_time" class="form-label">
+            Start time <span class="required-marker" aria-hidden="true">*</span>
           </label>
           <input
             type="time"
             id="start_time"
             name="start_time"
             class="form-control"
-            value="{{ start_time or '09:00' }}"
-            style="width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.95rem; font-family: inherit;"
+            value="{{ start_time if start_time is defined and start_time is not none else '09:00' }}"
             required
+            aria-describedby="booking-duration-rules booking-duration-feedback"
           >
         </div>
 
-        <div class="form-group">
-          <label for="end_time" class="form-label" style="font-weight: 600; display: block; margin-bottom: 0.45rem;">
-            End Time <span style="color: #ef4444;">*</span>
+        <div class="form-group booking-field">
+          <label for="end_time" class="form-label">
+            End time <span class="required-marker" aria-hidden="true">*</span>
           </label>
           <input
             type="time"
             id="end_time"
             name="end_time"
             class="form-control"
-            value="{{ end_time or '11:00' }}"
-            style="width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.95rem; font-family: inherit;"
+            value="{{ end_time if end_time is defined and end_time is not none else '11:00' }}"
             required
+            aria-describedby="booking-duration-rules booking-duration-feedback"
           >
         </div>
       </div>
 
-      <!-- Info Box -->
-      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.9rem 1.1rem; margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 0.75rem;">
-        <span style="color: var(--primary-color); font-size: 1.15rem; line-height: 1;">ℹ️</span>
-        <div style="font-size: 0.85rem; color: #475569; line-height: 1.45;">
-          <strong>Request Workflow:</strong> Once submitted, your request is marked as <strong>Pending</strong>. Lab staff will review and approve or reject the request before your reservation is finalized.
+      <aside class="booking-rules" aria-labelledby="booking-rules-title">
+        <div class="booking-rules-icon" aria-hidden="true">i</div>
+        <div>
+          <h2 id="booking-rules-title">Booking time rules</h2>
+          <p id="booking-duration-rules">
+            Reservations must be between <strong>30 minutes</strong> and <strong>4 hours</strong>. The end time must be later than the start time.
+          </p>
+          <p id="booking-duration-feedback" class="booking-duration-feedback" aria-live="polite">
+            Choose a start and end time to view the booking duration.
+          </p>
         </div>
-      </div>
+      </aside>
 
-      <!-- Action Buttons -->
-      <div style="display: flex; gap: 1rem; align-items: center;">
-        <button
-          type="submit"
-          id="submit-booking-btn"
-          class="btn btn-primary"
-          style="flex: 1; padding: 0.85rem 1.5rem; font-size: 0.96rem; font-weight: 600; border-radius: 8px; cursor: pointer;"
-        >
-          Submit Booking Request
+      <aside class="booking-workflow" aria-labelledby="booking-workflow-title">
+        <h2 id="booking-workflow-title">Before you submit</h2>
+        <p>
+          The system checks equipment availability and conflicts with Pending or Approved bookings. Server-side validation protects every request, including when browser assistance is unavailable.
+        </p>
+      </aside>
+
+      <div class="booking-actions">
+        <button type="submit" id="submit-booking-btn" class="btn btn-primary">
+          Submit booking request
         </button>
-        <a
-          href="{{ url_for('bookings.my_bookings') }}"
-          class="btn"
-          style="padding: 0.85rem 1.25rem; background: #f1f5f9; color: var(--text-main); font-weight: 500; border-radius: 8px; text-decoration: none;"
-        >
-          My Bookings
+        <a href="{{ url_for('bookings.my_bookings') }}" class="btn booking-secondary-action">
+          View my bookings
         </a>
       </div>
     </form>
   </div>
-</div>
+</section>
+{% endblock %}
+
+{% block extra_head %}
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("booking-request-form");
+    const startTime = document.getElementById("start_time");
+    const endTime = document.getElementById("end_time");
+    const feedback = document.getElementById("booking-duration-feedback");
+
+    if (!form || !startTime || !endTime || !feedback) {
+      return;
+    }
+
+    const timeToMinutes = (value) => {
+      const [hours, minutes] = value.split(":").map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const updateDurationFeedback = () => {
+      endTime.setCustomValidity("");
+      feedback.className = "booking-duration-feedback";
+
+      if (!startTime.value || !endTime.value) {
+        feedback.textContent = "Choose a start and end time to view the booking duration.";
+        return;
+      }
+
+      const durationMinutes = timeToMinutes(endTime.value) - timeToMinutes(startTime.value);
+      let message = "";
+
+      if (durationMinutes <= 0) {
+        message = "End time must be later than start time.";
+      } else if (durationMinutes < 30) {
+        message = "Booking duration must be at least 30 minutes.";
+      } else if (durationMinutes > 240) {
+        message = "Booking duration cannot exceed 4 hours.";
+      }
+
+      if (message) {
+        endTime.setCustomValidity(message);
+        feedback.textContent = message;
+        feedback.classList.add("is-error");
+        return;
+      }
+
+      const hours = Math.floor(durationMinutes / 60);
+      const minutes = durationMinutes % 60;
+      const durationLabel = hours ? `${hours} hour${hours === 1 ? "" : "s"}` : "";
+      const minuteLabel = minutes ? `${minutes} minute${minutes === 1 ? "" : "s"}` : "";
+      feedback.textContent = `Selected duration: ${[durationLabel, minuteLabel].filter(Boolean).join(" ")}.`;
+      feedback.classList.add("is-valid");
+    };
+
+    startTime.addEventListener("input", updateDurationFeedback);
+    endTime.addEventListener("input", updateDurationFeedback);
+    form.addEventListener("submit", updateDurationFeedback);
+    updateDurationFeedback();
+  });
+</script>
 {% endblock %}

@@ -9,8 +9,7 @@ from app.models import Booking, Equipment, User
 
 @pytest.fixture
 def app():
-    test_app = create_app()
-    test_app.config.update(
+    test_app = create_app(
         {
             "TESTING": True,
             "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
@@ -140,7 +139,7 @@ def test_request_booking_requires_authentication(client):
 
 
 def test_request_booking_form_rendered(client, sample_data):
-    """Authenticated student can view the booking form with available equipment."""
+    """Authenticated student can view the accessible FR-03 booking form."""
     login_user_helper(client, "test_student")
     response = client.get("/bookings/request")
     assert response.status_code == 200
@@ -150,7 +149,37 @@ def test_request_booking_form_rendered(client, sample_data):
     assert "booking_date" in html
     assert "start_time" in html
     assert "end_time" in html
-    assert "Initial Status: Pending" in html
+    assert 'type="date"' in html
+    assert html.count('type="time"') == 2
+    assert "30 minutes" in html
+    assert "4 hours" in html
+    assert 'id="booking-duration-feedback"' in html
+    assert "Initial status: Pending" in html
+
+
+def test_booking_form_preserves_blank_submitted_values_after_validation_error(
+    client, sample_data
+):
+    """A server-side validation error must not replace a blank submitted date."""
+    login_user_helper(client, "test_student")
+    response = client.post(
+        "/bookings/request",
+        data={
+            "equipment_id": sample_data["equip_available"].id,
+            "booking_date": "",
+            "start_time": "10:00",
+            "end_time": "11:00",
+        },
+    )
+
+    html = response.get_data(as_text=True)
+    assert response.status_code == 400
+    assert "Booking date is required" in html
+    assert 'id="booking_date"' in html
+    assert 'value=""' in html
+    assert 'value="10:00"' in html
+    assert 'value="11:00"' in html
+    assert Booking.query.count() == 0
 
 
 # ==========================================

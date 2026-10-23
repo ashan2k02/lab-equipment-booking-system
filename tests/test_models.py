@@ -7,8 +7,7 @@ from app.models import Equipment, User
 
 @pytest.fixture
 def app():
-    test_app = create_app()
-    test_app.config.update(
+    test_app = create_app(
         {
             "TESTING": True,
             "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",

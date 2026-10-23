@@ -11,6 +11,7 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.auth import staff_required
@@ -309,3 +310,99 @@ def booking_detail(booking_id: int):
         abort(403)
 
     return render_template("bookings/detail.html", booking=booking)
+
+
+@bookings_bp.route("/<int:booking_id>/accept", methods=["POST"])
+@bookings_bp.route("/<int:booking_id>/approve", methods=["POST"])
+@staff_required
+def accept_booking(booking_id: int):
+    """Staff only: accept/approve a pending booking request."""
+    booking = db.session.get(Booking, booking_id)
+    if not booking:
+        abort(404)
+
+    if booking.status != Booking.STATUS_PENDING:
+        flash(
+            f"Booking #{booking.id} cannot be accepted because it is already {booking.status}.",
+            "error",
+        )
+        return redirect(url_for("bookings.pending_bookings"))
+
+    # Check if equipment is out of service
+    if booking.equipment and booking.equipment.status == Equipment.STATUS_OUT_OF_SERVICE:
+        flash(
+            f"Cannot accept Booking #{booking.id}: '{booking.equipment.name}' is currently marked Out of service.",
+            "error",
+        )
+        return redirect(url_for("bookings.pending_bookings"))
+
+    # Check for overlapping Approved bookings for the same equipment
+    conflicting = Booking.query.filter(
+        Booking.id != booking.id,
+        Booking.equipment_id == booking.equipment_id,
+        Booking.booking_date == booking.booking_date,
+        Booking.status == Booking.STATUS_APPROVED,
+        Booking.start_time < booking.end_time,
+        Booking.end_time > booking.start_time,
+    ).first()
+
+    if conflicting:
+        flash(
+            f"Cannot accept Booking #{booking.id}: this equipment already has an approved booking during that time window.",
+            "error",
+        )
+        return redirect(url_for("bookings.pending_bookings"))
+
+    try:
+        booking.status = Booking.STATUS_APPROVED
+        db.session.commit()
+        equip_name = booking.equipment.name if booking.equipment else "equipment"
+        flash(
+            f"Booking #{booking.id} for '{equip_name}' accepted successfully.",
+            "success",
+        )
+    except SQLAlchemyError:
+        db.session.rollback()
+        flash("Failed to accept booking due to a database error.", "error")
+
+    next_page = request.form.get("next") or request.args.get("next")
+    if next_page and next_page.startswith("/") and not next_page.startswith("//"):
+        return redirect(next_page)
+    return redirect(url_for("bookings.pending_bookings"))
+
+
+@bookings_bp.route("/<int:booking_id>/reject", methods=["POST"])
+@bookings_bp.route("/<int:booking_id>/decline", methods=["POST"])
+@staff_required
+def reject_booking(booking_id: int):
+    """Staff only: decline/reject a pending booking request with an optional reason."""
+    booking = db.session.get(Booking, booking_id)
+    if not booking:
+        abort(404)
+
+    if booking.status != Booking.STATUS_PENDING:
+        flash(
+            f"Booking #{booking.id} cannot be declined because it is already {booking.status}.",
+            "error",
+        )
+        return redirect(url_for("bookings.pending_bookings"))
+
+    reason = request.form.get("rejection_reason", "").strip()
+
+    try:
+        booking.status = Booking.STATUS_REJECTED
+        booking.rejection_reason = reason if reason else None
+        db.session.commit()
+        equip_name = booking.equipment.name if booking.equipment else "equipment"
+        flash(
+            f"Booking #{booking.id} for '{equip_name}' has been declined.",
+            "info",
+        )
+    except SQLAlchemyError:
+        db.session.rollback()
+        flash("Failed to decline booking due to a database error.", "error")
+
+    next_page = request.form.get("next") or request.args.get("next")
+    if next_page and next_page.startswith("/") and not next_page.startswith("//"):
+        return redirect(next_page)
+    return redirect(url_for("bookings.pending_bookings"))

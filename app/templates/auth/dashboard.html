@@ -3,43 +3,116 @@
 {% block title %}Dashboard - Lab Equipment Booking System{% endblock %}
 
 {% block content %}
-<div class="auth-wrapper" style="max-width: 680px; margin: 0 auto;">
-  <div class="auth-card" style="max-width: 680px;">
-    <div class="auth-header" style="text-align: left; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
-      <h1>Hello, {{ user.username }}!</h1>
-      <p>Welcome to your personal account dashboard.</p>
+<div class="user-dashboard-container" style="max-width: 860px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 1.5rem;">
+
+  <!-- Welcome Profile Card -->
+  <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 2rem; box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+    <div style="display: flex; align-items: center; gap: 1.25rem;">
+      <div style="width: 60px; height: 60px; border-radius: 14px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);">
+        {{ user.username[:1]|upper }}
+      </div>
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.25rem;">
+          <h1 style="font-size: 1.65rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.02em; margin: 0;">
+            Hello, {{ user.username }}!
+          </h1>
+          <span style="background: #dbeafe; color: #1e40af; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em;">
+            {{ user.role }}
+          </span>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.92rem; margin: 0;">
+          {{ user.email }} &middot; Student Research & Laboratory Access Account
+        </p>
+      </div>
     </div>
 
-    <div style="margin: 1.5rem 0;">
-      <h2 style="font-size: 1.15rem; margin-bottom: 1rem;">Account Details</h2>
-      <table style="width: 100%; border-collapse: collapse;">
-        <tr style="border-bottom: 1px solid var(--border-color);">
-          <td style="padding: 0.75rem 0; font-weight: 600; color: var(--text-muted); width: 30%;">Username</td>
-          <td style="padding: 0.75rem 0;">{{ user.username }}</td>
-        </tr>
-        <tr style="border-bottom: 1px solid var(--border-color);">
-          <td style="padding: 0.75rem 0; font-weight: 600; color: var(--text-muted);">Email Address</td>
-          <td style="padding: 0.75rem 0;">{{ user.email }}</td>
-        </tr>
-        <tr style="border-bottom: 1px solid var(--border-color);">
-          <td style="padding: 0.75rem 0; font-weight: 600; color: var(--text-muted);">Account Role</td>
-          <td style="padding: 0.75rem 0;">
-            <span style="background: #dbeafe; color: #1e40af; font-weight: 600; padding: 0.25rem 0.65rem; border-radius: 9999px; font-size: 0.85rem;">
-              {{ user.role }}
-            </span>
-          </td>
-        </tr>
-      </table>
-    </div>
-
-    <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem; flex-wrap: wrap;">
-      <a href="{{ url_for('bookings.request_booking') }}" id="dashboard-book-btn" class="btn btn-primary">Book Equipment</a>
-      <a href="{{ url_for('bookings.my_bookings') }}" id="dashboard-my-bookings-btn" class="btn" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-weight: 600;">My Bookings</a>
+    <div style="display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap;">
       {% if user.is_staff %}
-        <a href="{{ url_for('auth.staff_dashboard') }}" class="btn" style="background: #0f172a; color: #ffffff;">Staff Console</a>
+        <a href="{{ url_for('auth.staff_dashboard') }}" class="btn" style="background: #0f172a; color: #ffffff; font-weight: 600; font-size: 0.88rem; padding: 0.6rem 1.15rem;">
+          Staff Console
+        </a>
       {% endif %}
-      <a href="{{ url_for('auth.logout') }}" class="btn" style="background: #f1f5f9; color: var(--text-main); margin-left: auto;">Log Out</a>
+      <a href="{{ url_for('auth.logout') }}" class="btn" style="background: #f1f5f9; color: var(--text-main); font-size: 0.88rem; padding: 0.6rem 1rem;">
+        Log Out
+      </a>
     </div>
   </div>
+
+  <!-- Quick Action Navigation Tiles -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.25rem;">
+    <!-- Tile 1: Book Equipment -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="width: 40px; height: 40px; border-radius: 10px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 1rem; font-weight: 700;">
+          📅
+        </div>
+        <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.35rem;">Book Lab Equipment</h2>
+        <p style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.45; margin-bottom: 1.25rem;">
+          Select available equipment items and choose reservation time slots between 30 mins and 4 hours.
+        </p>
+      </div>
+      <a href="{{ url_for('bookings.request_booking') }}" id="dashboard-book-btn" class="btn btn-primary" style="padding: 0.65rem 1.2rem; font-size: 0.9rem; font-weight: 600; text-align: center;">
+        Book Equipment &rarr;
+      </a>
+    </div>
+
+    <!-- Tile 2: My Bookings -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="width: 40px; height: 40px; border-radius: 10px; background: #f0fdf4; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 1rem; font-weight: 700;">
+          📋
+        </div>
+        <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.35rem;">My Reservations</h2>
+        <p style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.45; margin-bottom: 1.25rem;">
+          Track current statuses of your requests: Pending review, Approved, or Rejected feedback.
+        </p>
+      </div>
+      <a href="{{ url_for('bookings.my_bookings') }}" id="dashboard-my-bookings-btn" class="btn" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-weight: 600; padding: 0.65rem 1.2rem; font-size: 0.9rem; text-align: center;">
+        View My Bookings &rarr;
+      </a>
+    </div>
+
+    <!-- Tile 3: Browse Catalogue -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="width: 40px; height: 40px; border-radius: 10px; background: #faf5ff; color: #9333ea; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 1rem; font-weight: 700;">
+          🔬
+        </div>
+        <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.35rem;">Equipment Directory</h2>
+        <p style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.45; margin-bottom: 1.25rem;">
+          Browse the full catalogue of laboratory instruments, experimental kits, and specs.
+        </p>
+      </div>
+      <a href="{{ url_for('equipment.list_equipment') }}" class="btn" style="background: #ffffff; color: var(--text-main); border: 1px solid var(--border-color); font-weight: 600; padding: 0.65rem 1.2rem; font-size: 0.9rem; text-align: center;">
+        Browse Catalogue &rarr;
+      </a>
+    </div>
+  </div>
+
+  <!-- Account Specifications Card -->
+  <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.75rem; box-shadow: var(--shadow-sm);">
+    <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin-bottom: 1rem;">
+      Account Details
+    </h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.9rem 1.1rem;">
+        <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Username</span>
+        <div style="font-size: 1rem; font-weight: 600; color: var(--text-main); margin-top: 0.25rem;">{{ user.username }}</div>
+      </div>
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.9rem 1.1rem;">
+        <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Email Address</span>
+        <div style="font-size: 1rem; font-weight: 600; color: var(--text-main); margin-top: 0.25rem;">{{ user.email }}</div>
+      </div>
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.9rem 1.1rem;">
+        <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Account Role</span>
+        <div style="margin-top: 0.25rem;">
+          <span style="background: #dbeafe; color: #1e40af; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.85rem;">
+            {{ user.role }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 {% endblock %}

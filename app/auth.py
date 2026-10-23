@@ -15,7 +15,7 @@ from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app import db
-from app.models import User
+from app.models import Booking, Equipment, User
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -285,5 +285,27 @@ def dashboard():
 @auth_bp.route("/staff/dashboard")
 @staff_required
 def staff_dashboard():
-    """Protected staff-only view demonstrating role restriction."""
-    return render_template("auth/staff_dashboard.html", user=current_user)
+    """Protected staff-only view demonstrating role restriction and operations."""
+    total_equipment = Equipment.query.count()
+    available_equipment = Equipment.query.filter_by(
+        status=Equipment.STATUS_AVAILABLE
+    ).count()
+    out_of_service_equipment = Equipment.query.filter_by(
+        status=Equipment.STATUS_OUT_OF_SERVICE
+    ).count()
+    pending_bookings_count = Booking.query.filter_by(
+        status=Booking.STATUS_PENDING
+    ).count()
+    recent_equipment = (
+        Equipment.query.order_by(Equipment.id.desc()).limit(5).all()
+    )
+
+    return render_template(
+        "auth/staff_dashboard.html",
+        user=current_user,
+        total_equipment=total_equipment,
+        available_equipment=available_equipment,
+        out_of_service_equipment=out_of_service_equipment,
+        pending_bookings_count=pending_bookings_count,
+        recent_equipment=recent_equipment,
+    )
