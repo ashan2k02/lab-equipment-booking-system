@@ -24,6 +24,7 @@ def validate_booking_input(
     booking_date_raw: str | None,
     start_time_raw: str | None,
     end_time_raw: str | None,
+    exclude_booking_id: int | None = None,
 ) -> tuple[bool, str | None, dict[str, Any] | None]:
     """Validate user input for booking equipment and return (is_valid, error_message, parsed_data)."""
     current_datetime = datetime.now()
@@ -111,13 +112,17 @@ def validate_booking_input(
     if booking_date == current_date and start_time < current_datetime.time():
         return False, "Booking cannot start in the past.", None
 
-    conflicting_booking = Booking.query.filter(
+    conflict_query = Booking.query.filter(
         Booking.equipment_id == equipment.id,
         Booking.booking_date == booking_date,
         Booking.status.in_((Booking.STATUS_PENDING, Booking.STATUS_APPROVED)),
         Booking.start_time < end_time,
         Booking.end_time > start_time,
-    ).first()
+    )
+    if exclude_booking_id is not None:
+        conflict_query = conflict_query.filter(Booking.id != exclude_booking_id)
+
+    conflicting_booking = conflict_query.first()
     if conflicting_booking:
         return (
             False,
@@ -235,6 +240,60 @@ def pending_bookings():
     return render_template(
         "bookings/pending_bookings.html", bookings=pending_requests
     )
+
+
+@bookings_bp.route("/<int:booking_id>/approve", methods=["POST"])
+@staff_required
+def approve_booking(booking_id: int):
+    """Approve a pending booking after rechecking its booking constraints."""
+    booking = db.session.get(Booking, booking_id)
+    if not booking:
+        abort(404)
+
+    if not booking.is_pending:
+        flash("Only Pending bookings can be approved.", "error")
+        return redirect(url_for("bookings.pending_bookings"))
+
+    is_valid, error_msg, _ = validate_booking_input(
+        equipment_id_raw=str(booking.equipment_id),
+        booking_date_raw=booking.booking_date.isoformat(),
+        start_time_raw=booking.start_time.isoformat(),
+        end_time_raw=booking.end_time.isoformat(),
+        exclude_booking_id=booking.id,
+    )
+    if not is_valid:
+        flash(f"Booking cannot be approved: {error_msg}", "error")
+        return redirect(url_for("bookings.pending_bookings"))
+
+    booking.status = Booking.STATUS_APPROVED
+    booking.rejection_reason = None
+    db.session.commit()
+    flash("Booking approved successfully.", "success")
+    return redirect(url_for("bookings.pending_bookings"))
+
+
+@bookings_bp.route("/<int:booking_id>/reject", methods=["POST"])
+@staff_required
+def reject_booking(booking_id: int):
+    """Reject a pending booking and optionally store a staff reason."""
+    booking = db.session.get(Booking, booking_id)
+    if not booking:
+        abort(404)
+
+    if not booking.is_pending:
+        flash("Only Pending bookings can be rejected.", "error")
+        return redirect(url_for("bookings.pending_bookings"))
+
+    rejection_reason = request.form.get("rejection_reason", "").strip()
+    if len(rejection_reason) > 255:
+        flash("Rejection reason must be 255 characters or fewer.", "error")
+        return redirect(url_for("bookings.pending_bookings"))
+
+    booking.status = Booking.STATUS_REJECTED
+    booking.rejection_reason = rejection_reason or None
+    db.session.commit()
+    flash("Booking rejected successfully.", "success")
+    return redirect(url_for("bookings.pending_bookings"))
 
 
 @bookings_bp.route("/<int:booking_id>")
