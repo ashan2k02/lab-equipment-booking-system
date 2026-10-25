@@ -12,14 +12,34 @@ The system aims to prevent double bookings, maintain booking records, and simpli
 Lab-Equipment-Booking-System/
 ├── app/
 │   ├── __init__.py
+│   ├── auth.py
+│   ├── bookings.py
+│   ├── equipment.py
 │   ├── models.py
-│   ├── routes.py
-│   └── auth.py
+│   ├── static/
+│   │   └── css/
+│   └── templates/
+│       ├── auth/
+│       ├── bookings/
+│       ├── equipment/
+│       ├── errors/
+│       ├── base.html
+│       └── home.html
 ├── tests/
-│   └── test_basic.py
+│   ├── test_app.py
+│   ├── test_auth.py
+│   ├── test_authentication_suite.py
+│   ├── test_booking_integration.py
+│   ├── test_booking_request.py
+│   ├── test_equipment.py
+│   ├── test_models.py
+│   ├── test_password_hashing.py
+│   └── test_pending_bookings.py
 ├── .github/
 │   └── workflows/
 │       └── ci.yml
+├── config.py
+├── seed_equipment.py
 ├── run.py
 ├── requirements.txt
 ├── README.md
@@ -183,7 +203,19 @@ Activate it on Windows:
 pip install -r requirements.txt
 ```
 
-### 4. Run the Application
+### 4. Database Setup and Seeding (Optional)
+
+To seed initial lab equipment items and a default Staff account:
+
+```bash
+python seed_equipment.py
+```
+
+Default seeded credentials:
+- **Staff account:** `lab_staff` / `StaffPassword123!` (email: `lab.staff@local.test`)
+- *Note:* Students can register directly via the **Register** page on the web application.
+
+### 5. Run the Application
 
 ```bash
 python run.py
@@ -193,22 +225,23 @@ Open the following URL in your browser:
 
 http://127.0.0.1:5000
 
-### 5. Run Automated Tests
+### 6. Run Automated Tests
 
 ```bash
 pytest
 ```
 
-### 6. Run Tests with Coverage
+### 7. Run Tests with Coverage
 
 ```bash
 pytest --cov=app --cov-report=term-missing
 ```
 
-### 7. Run Ruff
+### 8. Run Ruff Linter and Formatter
 
 ```bash
 ruff check .
+ruff format --check .
 ```
 
 ## GitHub Workflow

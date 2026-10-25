@@ -5,11 +5,13 @@ on:
     branches:
       - main
       - development
+      - Development
       - "feature/**"
   pull_request:
     branches:
       - main
       - development
+      - Development
 
 jobs:
   test:
@@ -29,7 +31,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Ruff
+      - name: Run Ruff Format Check
+        run: python -m ruff format --check .
+
+      - name: Run Ruff Linter
         run: python -m ruff check .
 
       - name: Run tests with coverage

@@ -522,4 +522,3 @@ def test_load_user_helper(app):
         # Invalid ID
         assert login_manager._user_callback("invalid_id") is None
         assert login_manager._user_callback("999999") is None
-

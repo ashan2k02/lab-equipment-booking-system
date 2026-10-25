@@ -228,4 +228,4 @@ class Booking(db.Model):
         return (
             f"<Booking id={self.id} user_id={self.user_id} "
             f"equipment_id={self.equipment_id} status={self.status}>"
-        )
+        )

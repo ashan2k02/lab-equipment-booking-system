@@ -296,9 +296,7 @@ def staff_dashboard():
     pending_bookings_count = Booking.query.filter_by(
         status=Booking.STATUS_PENDING
     ).count()
-    recent_equipment = (
-        Equipment.query.order_by(Equipment.id.desc()).limit(5).all()
-    )
+    recent_equipment = Equipment.query.order_by(Equipment.id.desc()).limit(5).all()
 
     return render_template(
         "auth/staff_dashboard.html",

@@ -91,7 +91,9 @@ def test_user_model_creation_and_defaults(app):
         assert saved.password_hash != "freshman_password_99"
         assert saved.check_password("freshman_password_99") is True
         assert saved.check_password("wrong_password") is False
-        with pytest.raises(AttributeError, match="password is not a readable attribute"):
+        with pytest.raises(
+            AttributeError, match="password is not a readable attribute"
+        ):
             _ = saved.password
 
 
@@ -164,39 +166,84 @@ def test_successful_student_registration(client, app):
     ("field_data", "expected_error"),
     [
         (
-            {"username": "", "email": "a@uni.ac.lk", "password": "pass12", "confirm_password": "pass12"},
+            {
+                "username": "",
+                "email": "a@uni.ac.lk",
+                "password": "pass12",
+                "confirm_password": "pass12",
+            },
             "Username is required.",
         ),
         (
-            {"username": "ab", "email": "a@uni.ac.lk", "password": "pass12", "confirm_password": "pass12"},
+            {
+                "username": "ab",
+                "email": "a@uni.ac.lk",
+                "password": "pass12",
+                "confirm_password": "pass12",
+            },
             "Username must be at least 3 characters long.",
         ),
         (
-            {"username": "bad user!", "email": "a@uni.ac.lk", "password": "pass12", "confirm_password": "pass12"},
+            {
+                "username": "bad user!",
+                "email": "a@uni.ac.lk",
+                "password": "pass12",
+                "confirm_password": "pass12",
+            },
             "Username can only contain letters, numbers, and underscores.",
         ),
         (
-            {"username": "a" * 81, "email": "a@uni.ac.lk", "password": "pass12", "confirm_password": "pass12"},
+            {
+                "username": "a" * 81,
+                "email": "a@uni.ac.lk",
+                "password": "pass12",
+                "confirm_password": "pass12",
+            },
             "Username must be at most 80 characters long.",
         ),
         (
-            {"username": "valid_user", "email": "", "password": "pass12", "confirm_password": "pass12"},
+            {
+                "username": "valid_user",
+                "email": "",
+                "password": "pass12",
+                "confirm_password": "pass12",
+            },
             "Email is required.",
         ),
         (
-            {"username": "valid_user", "email": "invalid-email-format", "password": "pass12", "confirm_password": "pass12"},
+            {
+                "username": "valid_user",
+                "email": "invalid-email-format",
+                "password": "pass12",
+                "confirm_password": "pass12",
+            },
             "Please provide a valid email address.",
         ),
         (
-            {"username": "valid_user", "email": "user@uni.ac.lk", "password": "", "confirm_password": ""},
+            {
+                "username": "valid_user",
+                "email": "user@uni.ac.lk",
+                "password": "",
+                "confirm_password": "",
+            },
             "Password is required.",
         ),
         (
-            {"username": "valid_user", "email": "user@uni.ac.lk", "password": "12345", "confirm_password": "12345"},
+            {
+                "username": "valid_user",
+                "email": "user@uni.ac.lk",
+                "password": "12345",
+                "confirm_password": "12345",
+            },
             "Password must be at least 6 characters long.",
         ),
         (
-            {"username": "valid_user", "email": "user@uni.ac.lk", "password": "password123", "confirm_password": "different123"},
+            {
+                "username": "valid_user",
+                "email": "user@uni.ac.lk",
+                "password": "password123",
+                "confirm_password": "different123",
+            },
             "Passwords do not match.",
         ),
     ],
@@ -232,7 +279,10 @@ def test_registration_rejects_duplicate_accounts(client, student_account):
         },
     )
     assert res_email.status_code == 400
-    assert b"Email is already registered. Please use another email or log in." in res_email.data
+    assert (
+        b"Email is already registered. Please use another email or log in."
+        in res_email.data
+    )
 
 
 def test_public_registration_prevents_staff_role_escalation(client, app):
@@ -307,7 +357,10 @@ def test_successful_student_login_with_username_and_email(client, student_accoun
     # Login via email (case-insensitive)
     res_email = client.post(
         "/login",
-        data={"username": "STUDENT_AUTH@UNIVERSITY.AC.LK", "password": "auth_student_pass_123"},
+        data={
+            "username": "STUDENT_AUTH@UNIVERSITY.AC.LK",
+            "password": "auth_student_pass_123",
+        },
         follow_redirects=True,
     )
     assert res_email.status_code == 200
@@ -344,11 +397,15 @@ def test_login_incorrect_passwords_and_unknown_accounts(client, student_account)
     assert b"Invalid username or password." in res_bad_pass.data
 
     # Missing credentials
-    res_no_user = client.post("/login", data={"username": "", "password": "some_password"})
+    res_no_user = client.post(
+        "/login", data={"username": "", "password": "some_password"}
+    )
     assert res_no_user.status_code == 400
     assert b"Username or email is required." in res_no_user.data
 
-    res_no_pass = client.post("/login", data={"username": "student_auth_user", "password": ""})
+    res_no_pass = client.post(
+        "/login", data={"username": "student_auth_user", "password": ""}
+    )
     assert res_no_pass.status_code == 400
     assert b"Password is required." in res_no_pass.data
 

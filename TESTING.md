@@ -118,13 +118,20 @@ The FR-04 tests verify that staff can approve and reject Pending bookings, statu
 
 ## 12. Test execution results
 
-Latest verified execution result for the current FR-04 implementation:
+Latest verified execution result across the complete test suite:
 
 ```text
-164 passed, 4 warnings
+198 passed
 ```
 
-Coverage completed at 97% overall. Ruff completed with `All checks passed!`, and `git diff --check` completed without whitespace errors.
+Coverage completed at 98% overall (586 statements, 12 missed):
+- `app/__init__.py`: 100%
+- `app/auth.py`: 100%
+- `app/bookings.py`: 98%
+- `app/equipment.py`: 96%
+- `app/models.py`: 97%
+
+Ruff linting (`ruff check .`) and code formatting (`ruff format --check .`) completed with 0 errors, and `git diff --check` completed without whitespace errors.
 
 ## 13. Known warnings or limitations
 
