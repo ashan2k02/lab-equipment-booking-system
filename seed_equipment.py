@@ -1,7 +1,14 @@
-"""Seed sample laboratory equipment items into the database."""
+"""Seed sample laboratory equipment items and default staff user into the database."""
 
 from app import create_app, db
-from app.models import Equipment
+from app.models import Equipment, User
+
+DEFAULT_STAFF = {
+    "username": "lab_staff",
+    "email": "lab.staff@local.test",
+    "password": "StaffPassword123!",
+    "role": User.ROLE_STAFF,
+}
 
 SAMPLE_EQUIPMENT = [
     {
@@ -52,6 +59,25 @@ SAMPLE_EQUIPMENT = [
 def seed():
     app = create_app()
     with app.app_context():
+        # Seed default staff user if not present
+        existing_staff = User.query.filter(
+            (User.username == DEFAULT_STAFF["username"])
+            | (User.email == DEFAULT_STAFF["email"])
+        ).first()
+        if not existing_staff:
+            staff_user = User(
+                username=DEFAULT_STAFF["username"],
+                email=DEFAULT_STAFF["email"],
+                role=DEFAULT_STAFF["role"],
+                password=DEFAULT_STAFF["password"],
+            )
+            db.session.add(staff_user)
+            print(
+                f"Created default staff account: {DEFAULT_STAFF['username']} ({DEFAULT_STAFF['email']})"
+            )
+        else:
+            print(f"Staff account already exists: {existing_staff.username}")
+
         added_count = 0
         for item_data in SAMPLE_EQUIPMENT:
             existing = Equipment.query.filter_by(name=item_data["name"]).first()

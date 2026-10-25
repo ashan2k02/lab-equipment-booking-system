@@ -61,7 +61,9 @@ def available_equipment(app):
         return equip.id
 
 
-def login_student(client, username="student_integ_user", password="secure_password_123"):
+def login_student(
+    client, username="student_integ_user", password="secure_password_123"
+):
     """Helper function to log in the student test user."""
     return client.post(
         "/auth/login",
@@ -165,7 +167,13 @@ def test_authenticated_student_can_submit_booking_request(
     ],
 )
 def test_required_fields_validation_and_no_record_saved(
-    app, client, student_user, available_equipment, missing_field, payload, expected_error_snippet
+    app,
+    client,
+    student_user,
+    available_equipment,
+    missing_field,
+    payload,
+    expected_error_snippet,
 ):
     """Submissions missing any required field must be rejected with HTTP 400,
 

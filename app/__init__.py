@@ -2,6 +2,8 @@ from flask import Flask, render_template
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 
+from config import Config
+
 db = SQLAlchemy()
 login_manager = LoginManager()
 
@@ -9,9 +11,7 @@ login_manager = LoginManager()
 def create_app(test_config=None):
     app = Flask(__name__)
 
-    app.config["SECRET_KEY"] = "local-development-key"
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///lab_equipment.db"
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config.from_object(Config)
 
     if test_config:
         app.config.update(test_config)

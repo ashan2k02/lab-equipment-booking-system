@@ -1,6 +1,8 @@
 from datetime import date, timedelta
+from unittest.mock import patch
 
 import pytest
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import create_app, db
 from app.models import Booking, Equipment, User
@@ -200,7 +202,9 @@ def test_staff_cannot_accept_overlapping_approved_booking(app, client, sample_da
 
 def test_approval_rechecks_overlapping_bookings(app, client, sample_data):
     with app.app_context():
-        pending_booking = create_booking(db.session, sample_data, Booking.STATUS_PENDING)
+        pending_booking = create_booking(
+            db.session, sample_data, Booking.STATUS_PENDING
+        )
         competing_booking = Booking(
             user_id=sample_data["student_id"],
             equipment_id=sample_data["equipment_id"],
@@ -308,7 +312,9 @@ def test_repeated_actions_do_not_change_a_non_pending_booking(app, client, sampl
     with app.app_context():
         saved_booking = db.session.get(Booking, booking_id)
         assert saved_booking.status == Booking.STATUS_REJECTED
-        assert saved_booking.rejection_reason == "Maintenance scheduled for this device."
+        assert (
+            saved_booking.rejection_reason == "Maintenance scheduled for this device."
+        )
 
 
 def test_student_and_anonymous_cannot_accept_or_reject(app, client, sample_data):
@@ -397,3 +403,66 @@ def test_student_can_see_persisted_booking_status(app, client, sample_data):
     assert response.status_code == 200
     assert b"Pending Booking Equipment" in response.data
     assert b"Approved" in response.data
+
+
+def test_booking_detail_returns_404_for_nonexistent_booking(client, sample_data):
+    login(client, "pending_staff")
+    response = client.get("/bookings/99999")
+    assert response.status_code == 404
+
+
+def test_accept_booking_rejects_already_processed_booking(app, client, sample_data):
+    with app.app_context():
+        booking = create_booking(db.session, sample_data, Booking.STATUS_APPROVED)
+        booking_id = booking.id
+
+    login(client, "pending_staff")
+    response = client.post(f"/bookings/{booking_id}/accept", follow_redirects=True)
+    assert response.status_code == 200
+    assert b"cannot be accepted because it is already" in response.data
+
+
+def test_reject_booking_rejects_already_processed_booking(app, client, sample_data):
+    with app.app_context():
+        booking = create_booking(db.session, sample_data, Booking.STATUS_REJECTED)
+        booking_id = booking.id
+
+    login(client, "pending_staff")
+    response = client.post(f"/bookings/{booking_id}/reject", follow_redirects=True)
+    assert response.status_code == 200
+    assert b"cannot be declined because it is already" in response.data
+
+
+def test_accept_and_reject_database_error_handling(app, client, sample_data):
+    with app.app_context():
+        booking1 = create_booking(db.session, sample_data, Booking.STATUS_PENDING)
+        b1_id = booking1.id
+        booking2 = Booking(
+            user_id=sample_data["student_id"],
+            equipment_id=sample_data["equipment_id"],
+            booking_date=date.today() + timedelta(days=2),
+            start_time="14:00",
+            end_time="16:00",
+            status=Booking.STATUS_PENDING,
+        )
+        db.session.add(booking2)
+        db.session.commit()
+        b2_id = booking2.id
+
+    login(client, "pending_staff")
+
+    # DB error on accept
+    with patch(
+        "app.bookings.db.session.commit", side_effect=SQLAlchemyError("DB error")
+    ):
+        res_accept = client.post(f"/bookings/{b1_id}/accept", follow_redirects=True)
+        assert res_accept.status_code == 200
+        assert b"Failed to accept booking due to a database error." in res_accept.data
+
+    # DB error on reject
+    with patch(
+        "app.bookings.db.session.commit", side_effect=SQLAlchemyError("DB error")
+    ):
+        res_reject = client.post(f"/bookings/{b2_id}/reject", follow_redirects=True)
+        assert res_reject.status_code == 200
+        assert b"Failed to decline booking due to a database error." in res_reject.data

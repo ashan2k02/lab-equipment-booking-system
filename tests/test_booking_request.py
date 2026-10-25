@@ -212,9 +212,7 @@ def test_student_can_submit_valid_booking_request(client, sample_data, session):
     assert "Pending" in html
 
     # Verify directly in the database
-    created_booking = Booking.query.filter_by(
-        user_id=sample_data["student"].id
-    ).first()
+    created_booking = Booking.query.filter_by(user_id=sample_data["student"].id).first()
     assert created_booking is not None
     assert created_booking.equipment_id == sample_data["equip_available"].id
     assert created_booking.status == Booking.STATUS_PENDING

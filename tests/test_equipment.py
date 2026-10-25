@@ -10,9 +10,7 @@ from app.models import Booking, Equipment, User
 
 @pytest.fixture
 def app():
-    app = create_app(
-        {"TESTING": True, "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:"}
-    )
+    app = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:"})
     with app.app_context():
         db.session.add(
             User(
@@ -286,7 +284,9 @@ def test_add_equipment_rejects_name_over_100_chars(app, client):
         data={"name": long_name, "category": "General", "status": "Available"},
     )
     assert response.status_code == 400
-    assert "Equipment name must be at most 100 characters." in response.get_data(as_text=True)
+    assert "Equipment name must be at most 100 characters." in response.get_data(
+        as_text=True
+    )
     with app.app_context():
         assert Equipment.query.count() == 0
 
@@ -317,7 +317,9 @@ def test_add_equipment_rejects_description_over_250_chars(app, client):
         },
     )
     assert response.status_code == 400
-    assert "Description must be at most 250 characters." in response.get_data(as_text=True)
+    assert "Description must be at most 250 characters." in response.get_data(
+        as_text=True
+    )
     with app.app_context():
         assert Equipment.query.count() == 0
 
@@ -359,7 +361,9 @@ def test_add_equipment_handles_database_sqlalchemy_error(app, client):
             },
         )
     assert response.status_code == 500
-    assert "Failed to add equipment due to a database error." in response.get_data(as_text=True)
+    assert "Failed to add equipment due to a database error." in response.get_data(
+        as_text=True
+    )
     with app.app_context():
         assert Equipment.query.count() == 0
 
@@ -399,7 +403,9 @@ def test_available_equipment_selectable_for_booking(app, client):
             },
         )
         assert booking_res.status_code == 302
-        booking = Booking.query.filter_by(equipment_id=equip.id, user_id=student.id).first()
+        booking = Booking.query.filter_by(
+            equipment_id=equip.id, user_id=student.id
+        ).first()
         assert booking is not None
         assert booking.status == Booking.STATUS_PENDING
 
@@ -477,3 +483,121 @@ def test_navbar_equipment_links(client):
     assert "Add Equipment" in html_staff
     assert 'id="nav-book-link"' not in html_staff
     assert 'id="nav-my-bookings-link"' not in html_staff
+
+
+def test_student_cannot_edit_equipment(app, client):
+    equipment_id = make_equipment(app)
+    login_student(client)
+
+    get_res = client.get(f"/equipment/{equipment_id}/edit")
+    assert get_res.status_code == 403
+
+    post_res = client.post(
+        f"/equipment/{equipment_id}/edit",
+        data={
+            "name": "Tampered Name",
+            "category": "Kits",
+            "status": "Available",
+        },
+    )
+    assert post_res.status_code == 403
+
+    with app.app_context():
+        item = db.session.get(Equipment, equipment_id)
+        assert item.name != "Tampered Name"
+
+
+def test_anonymous_user_cannot_access_equipment_management_routes(app, client):
+    equipment_id = make_equipment(app)
+
+    routes = [
+        ("GET", "/equipment/add"),
+        ("POST", "/equipment/add"),
+        ("GET", f"/equipment/{equipment_id}/edit"),
+        ("POST", f"/equipment/{equipment_id}/edit"),
+        ("POST", f"/equipment/{equipment_id}/delete"),
+    ]
+
+    for method, route in routes:
+        if method == "GET":
+            res = client.get(route)
+        else:
+            res = client.post(route)
+        assert res.status_code == 302
+        assert "/login" in res.headers["Location"]
+
+
+def test_edit_equipment_form_validation(app, client):
+    equipment_id = make_equipment(app)
+    login_staff(client)
+
+    # Missing name
+    res_no_name = client.post(
+        f"/equipment/{equipment_id}/edit",
+        data={"name": "", "category": "Kits", "status": "Available"},
+    )
+    assert res_no_name.status_code == 400
+
+    # Missing category
+    res_no_cat = client.post(
+        f"/equipment/{equipment_id}/edit",
+        data={"name": "Valid Name", "category": "", "status": "Available"},
+    )
+    assert res_no_cat.status_code == 400
+
+    # Invalid status
+    res_inv_status = client.post(
+        f"/equipment/{equipment_id}/edit",
+        data={"name": "Valid Name", "category": "Kits", "status": "InvalidStatus"},
+    )
+    assert res_inv_status.status_code == 400
+
+    # Non-existent equipment ID
+    res_404 = client.get("/equipment/99999/edit")
+    assert res_404.status_code == 404
+
+
+def test_delete_nonexistent_equipment_returns_404(client):
+    login_staff(client)
+    res = client.post("/equipment/99999/delete")
+    assert res.status_code == 404
+
+
+def test_edit_equipment_database_error_handling(app, client):
+    equipment_id = make_equipment(app)
+    login_staff(client)
+
+    with patch(
+        "app.equipment.db.session.commit", side_effect=SQLAlchemyError("DB Error")
+    ):
+        response = client.post(
+            f"/equipment/{equipment_id}/edit",
+            data={
+                "name": "Oscilloscope Updated",
+                "category": "Instruments",
+                "status": "Available",
+            },
+        )
+        assert response.status_code == 500
+        assert (
+            "Failed to update equipment due to a database error."
+            in response.get_data(as_text=True)
+        )
+
+
+def test_delete_equipment_database_error_handling(app, client):
+    equipment_id = make_equipment(app)
+    login_staff(client)
+
+    with patch(
+        "app.equipment.db.session.commit", side_effect=SQLAlchemyError("DB Error")
+    ):
+        response = client.post(
+            f"/equipment/{equipment_id}/delete",
+            follow_redirects=True,
+        )
+        assert response.status_code == 200
+        assert (
+            "Failed to delete equipment due to a database error."
+            in response.get_data(as_text=True)
+        )

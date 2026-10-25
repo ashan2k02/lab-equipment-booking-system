@@ -59,7 +59,11 @@ def validate_booking_input(
         )
 
     if equipment.status != Equipment.STATUS_AVAILABLE:
-        return False, f"'{equipment.name}' is currently unavailable and cannot be booked.", None
+        return (
+            False,
+            f"'{equipment.name}' is currently unavailable and cannot be booked.",
+            None,
+        )
 
     # 2. Validate booking date
     if not booking_date_raw or not booking_date_raw.strip():
@@ -238,11 +242,7 @@ def pending_bookings():
         .order_by(Booking.booking_date, Booking.start_time, Booking.created_at)
         .all()
     )
-    return render_template(
-        "bookings/pending_bookings.html", bookings=pending_requests
-    )
-
-
+    return render_template("bookings/pending_bookings.html", bookings=pending_requests)
 
 
 @bookings_bp.route("/<int:booking_id>")
@@ -277,7 +277,10 @@ def accept_booking(booking_id: int):
         return redirect(url_for("bookings.pending_bookings"))
 
     # Check if equipment is out of service
-    if booking.equipment and booking.equipment.status == Equipment.STATUS_OUT_OF_SERVICE:
+    if (
+        booking.equipment
+        and booking.equipment.status == Equipment.STATUS_OUT_OF_SERVICE
+    ):
         flash(
             f"Cannot accept Booking #{booking.id}: '{booking.equipment.name}' is currently marked Out of service.",
             "error",
